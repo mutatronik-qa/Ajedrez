@@ -232,7 +232,12 @@ class GestorRecursos:
                 pygame.draw.rect(self.imagenes[nombre], color, (0, 0, 60, 60))
                 
     def obtener_imagen(self, color: Color, tipo: TipoPieza) -> pygame.Surface:
-        nombre_imagen = f"{tipo.value.upper()}_{color.value.upper()}"
+        # Corregido para usar el formato correcto de las claves del diccionario
+        if color == Color.BLANCO:
+            nombre_imagen = f"{tipo.value.upper()}_BLANCO"
+        else:
+            nombre_imagen = f"{tipo.value.upper()}_NEGRO"
+        
         if nombre_imagen not in self.imagenes:
             print(f"Advertencia: No se encontró la imagen {nombre_imagen}")
         return self.imagenes.get(nombre_imagen, pygame.Surface((60, 60), pygame.SRCALPHA))
@@ -371,12 +376,19 @@ class Tablero:
             (4, 0, Color.BLANCO, TipoPieza.REY),
             (5, 0, Color.BLANCO, TipoPieza.ALFIL),
             (6, 0, Color.BLANCO, TipoPieza.CABALLO),
-            (7, 0, Color.BLANCO, TipoPieza.TORRE)
+            (7, 0, Color.BLANCO, TipoPieza.TORRE),
         ]
         
+        # Añadir peones blancos en la fila 1
+        peones_blancos = [(i, 1, Color.BLANCO, TipoPieza.PEON) for i in range(8)]
+        piezas_blancas.extend(peones_blancos)
+        
         piezas_negras = [
-            (i, 7, Color.NEGRO, tipo) for i, _, _, tipo in piezas_blancas
+            (i, 7, Color.NEGRO, tipo) for i, _, _, tipo in piezas_blancas[:8]
         ]
+        # Añadir peones negros en la fila 6
+        peones_negros = [(i, 6, Color.NEGRO, TipoPieza.PEON) for i in range(8)]
+        piezas_negras.extend(peones_negros)
         
         for x, y, color, tipo in piezas_blancas + piezas_negras:
             pieza = Pieza(color, tipo)
@@ -387,8 +399,8 @@ class Tablero:
 class InterfazUsuario:
     def __init__(self):
         pygame.init()
-        self.ancho = 800
-        self.alto = 850  # Aumentado para mostrar información
+        self.ancho = 600  # Reducido de 800 a 600
+        self.alto = 650  # Reducido y manteniendo espacio para información
         self.pantalla = pygame.display.set_mode((self.ancho, self.alto))
         pygame.display.set_caption('Ajedrez')
         self.gestor_recursos = GestorRecursos()
@@ -452,17 +464,17 @@ class InterfazUsuario:
     def dibujar_informacion(self):
         # Área de información
         pygame.draw.rect(self.pantalla, self.colores['fondo_info'], 
-                       (0, 800, self.ancho, 50))
+                       (0, 600, self.ancho, 50))
         
         # Mostrar turno actual
         turno_texto = f"Turno: {'Blancas' if self.tablero.turno == Color.BLANCO else 'Negras'}"
         texto_superficie = self.fuente.render(turno_texto, True, self.colores['texto'])
-        self.pantalla.blit(texto_superficie, (20, 810))
+        self.pantalla.blit(texto_superficie, (20, 610))
         
         # Mostrar estado del juego
         estado_texto = f"Estado: {self.tablero.estado.value.capitalize()}"
         texto_superficie = self.fuente.render(estado_texto, True, self.colores['texto'])
-        self.pantalla.blit(texto_superficie, (300, 810))
+        self.pantalla.blit(texto_superficie, (300, 610))
 
 def main():
     try:
