@@ -54,22 +54,21 @@ class Pieza:
         
         # Movimiento hacia adelante (1 casilla)
         nueva_pos = (x, y + direccion)
-        if 0 <= nueva_pos[1] < 8 and nueva_pos not in tablero.casillas:
+        if 0 <= nueva_pos[1] < 8 and tablero.casillas.get(nueva_pos) is None:
             movimientos.append(nueva_pos)
             
             # Movimiento inicial (2 casillas)
             if self.movimientos == 0:
                 nueva_pos = (x, y + 2 * direccion)
-                if 0 <= nueva_pos[1] < 8 and nueva_pos not in tablero.casillas:
+                if 0 <= nueva_pos[1] < 8 and tablero.casillas.get(nueva_pos) is None:
                     movimientos.append(nueva_pos)
         
         # Capturas en diagonal
         for dx in [-1, 1]:
             nueva_pos = (x + dx, y + direccion)
             if 0 <= nueva_pos[0] < 8 and 0 <= nueva_pos[1] < 8:
-                if nueva_pos in tablero.casillas and tablero.casillas[nueva_pos]:
-                    if tablero.casillas[nueva_pos].color != self.color:
-                        movimientos.append(nueva_pos)
+                if tablero.casillas.get(nueva_pos) and tablero.casillas[nueva_pos].color != self.color:
+                    movimientos.append(nueva_pos)
         
         return movimientos
     
