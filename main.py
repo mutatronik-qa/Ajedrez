@@ -3,6 +3,7 @@ import random
 from typing import List, Tuple, Optional, Dict
 from enum import Enum
 import os
+import requests
 
 class Color(Enum):
     BLANCO = "blanco"
@@ -317,40 +318,98 @@ class InterfazUsuario:
         texto_superficie = self.fuente.render(estado_texto, True, self.colores['texto'])
         self.pantalla.blit(texto_superficie, (300, 610))
 
-def main():
-    try:
-        interfaz = InterfazUsuario()
-        ejecutando = True
-        seleccionado = None
+class Menu:
+    def __init__(self, opciones: List[str]):
+        pygame.init()
+        self.pantalla = pygame.display.set_mode((600, 400))
+        self.fuente = pygame.font.SysFont('Arial', 28)
+        self.opciones = opciones
+        self.seleccion = 0
+    
+    def loop(self) -> Optional[str]:
         clock = pygame.time.Clock()
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return None
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        self.seleccion = (self.seleccion - 1) % len(self.opciones)
+                    if event.key == pygame.K_DOWN:
+                        self.seleccion = (self.seleccion + 1) % len(self.opciones)
+                    if event.key == pygame.K_RETURN:
+                        return self.opciones[self.seleccion]
+            self.pantalla.fill((30, 30, 30))
+            for idx, texto in enumerate(self.opciones):
+                color = (255, 255, 255) if idx == self.seleccion else (180, 180, 180)
+                superficie = self.fuente.render(texto, True, color)
+                self.pantalla.blit(superficie, (60, 60 + idx * 50))
+            pygame.display.flip()
+            clock.tick(60)
 
-        while ejecutando:
-            continuar, click = interfaz.manejar_eventos()
-            if not continuar:
-                break
-                
-            if click:
-                if seleccionado is None:
-                    # Solo seleccionar si hay una pieza en la casilla y es del turno actual
+def ejecutar_partida_local():
+    interfaz = InterfazUsuario()
+    seleccionado = None
+    clock = pygame.time.Clock()
+    ejecutando = True
+    while ejecutando:
+        continuar, click = interfaz.manejar_eventos()
+        if not continuar:
+            break
+        if click:
+            if seleccionado is None:
+                if (click in interfaz.tablero.casillas and 
+                    interfaz.tablero.casillas[click] and 
+                    interfaz.tablero.casillas[click].color == interfaz.tablero.turno):
+                    seleccionado = click
+            else:
+                if interfaz.tablero.realizar_movimiento(seleccionado, click):
+                    seleccionado = None
+                else:
                     if (click in interfaz.tablero.casillas and 
                         interfaz.tablero.casillas[click] and 
                         interfaz.tablero.casillas[click].color == interfaz.tablero.turno):
                         seleccionado = click
-                else:
-                    if interfaz.tablero.realizar_movimiento(seleccionado, click):
-                        seleccionado = None
                     else:
-                        # Si el click es en otra pieza del mismo color, cambiar selección
-                        if (click in interfaz.tablero.casillas and 
-                            interfaz.tablero.casillas[click] and 
-                            interfaz.tablero.casillas[click].color == interfaz.tablero.turno):
-                            seleccionado = click
-                        else:
-                            seleccionado = None
-            clock.tick(60)  # 60 FPS                
-            interfaz.dibujar_tablero(seleccionado)
-            pygame.display.flip()
-            
+                        seleccionado = None
+        clock.tick(60)
+        interfaz.dibujar_tablero(seleccionado)
+        pygame.display.flip()
+
+def ejecutar_partida_vs_ia():
+    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    try:
+        r = requests.post("https://chess-api.com/v1", json={"fen": fen, "depth": 8, "variants": 1}, timeout=10)
+        r.raise_for_status()
+        data = r.json()
+        print(data)
+    except Exception as e:
+        print(f"Error IA: {e}")
+
+def mostrar_archivos_chess_com():
+    try:
+        r = requests.get("https://api.chess.com/pub/puzzle/daily", timeout=10)
+        r.raise_for_status()
+        print(r.json())
+    except Exception as e:
+        print(f"Error Chess.com: {e}")
+
+def main():
+    try:
+        menu = Menu([
+            "Jugador vs Jugador",
+            "Jugador vs IA (Chess-API)",
+            "Cargar partida de Chess.com",
+            "Salir"
+        ])
+        opcion = menu.loop()
+        if opcion and opcion != "Salir":
+            if opcion == "Jugador vs Jugador":
+                ejecutar_partida_local()
+            elif opcion == "Jugador vs IA (Chess-API)":
+                ejecutar_partida_vs_ia()
+            elif opcion == "Cargar partida de Chess.com":
+                mostrar_archivos_chess_com()
     except pygame.error as e:
         print(f"Error de Pygame: {e}")
     except Exception as e:
