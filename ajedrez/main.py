@@ -3,6 +3,7 @@ import random
 from typing import List, Tuple, Optional, Dict
 from enum import Enum
 import os
+from pieza import Pieza
 
 class Color(Enum):
     BLANCO = "blanco"
@@ -20,6 +21,7 @@ class EstadoJuego(Enum):
     JUGANDO = "jugando"
     JAQUE = "jaque"
     JAQUE_MATE = "jaque_mate"
+    TIEMPO = "tiempo_agotado"
     EMPATE = "empate"
 
 
@@ -256,8 +258,18 @@ class InterfazUsuario:
             'fondo_info': (220, 220, 220)
         }
         # Inicializar fuente para mostrar información
+        # Inicializar fuente para mostrar información
         pygame.font.init()
-        self.fuente = pygame.font.SysFont('Arial', 24)
+        # Fuente un poco más pequeña para que los temporizadores quepan en el área de información
+        self.fuente = pygame.font.SysFont('Arial', 18)
+        # Temporizadores (segundos) por jugador — por defecto 5 minutos
+        self.tiempo_inicial_seg = 5 * 60
+        self.tiempos: Dict[Color, float] = {
+            Color.BLANCO: float(self.tiempo_inicial_seg),
+            Color.NEGRO: float(self.tiempo_inicial_seg)
+        }
+        # Indicador si los temporizadores están activos
+        self.timers_activos = True
          
     def manejar_eventos(self) -> Tuple[bool, Optional[Tuple[int, int]]]:
         try:
@@ -272,6 +284,24 @@ class InterfazUsuario:
         except Exception as e:
             print(f"Error en manejar_eventos: {e}")
             return True, None
+        
+    def actualizar_tiempos(self, dt: float):
+        """Actualizar temporizadores. dt en segundos."""
+        try:
+            if not self.timers_activos:
+                return
+            if self.tablero.estado != EstadoJuego.JUGANDO:
+                return
+            turno_actual = self.tablero.turno
+            # Restar el tiempo transcurrido al jugador que tiene el turno
+            self.tiempos[turno_actual] = max(0.0, self.tiempos[turno_actual] - dt)
+            # Si se agota el tiempo, marcar fin del juego
+            if self.tiempos[turno_actual] <= 0.0:
+                self.timers_activos = False
+                self.tablero.estado = EstadoJuego.TIEMPO
+                print(f"Tiempo agotado para {turno_actual.value}")
+        except Exception as e:
+            print(f"Error en actualizar_tiempos: {e}")
         
     def dibujar_tablero(self, seleccionado=None):
         # Limpiar pantalla
@@ -317,6 +347,23 @@ class InterfazUsuario:
         texto_superficie = self.fuente.render(estado_texto, True, self.colores['texto'])
         self.pantalla.blit(texto_superficie, (300, 610))
 
+        # Mostrar temporizadores: formato MM:SS
+        def formato_tiempo(segundos: float) -> str:
+            s = max(0, int(round(segundos)))
+            m = s // 60
+            ss = s % 60
+            return f"{m:02d}:{ss:02d}"
+
+        tiempo_blancas = formato_tiempo(self.tiempos.get(Color.BLANCO, 0))
+        tiempo_negras = formato_tiempo(self.tiempos.get(Color.NEGRO, 0))
+
+        texto_b = self.fuente.render(f"Blancas: {tiempo_blancas}", True, self.colores['texto'])
+        texto_n = self.fuente.render(f"Negras: {tiempo_negras}", True, self.colores['texto'])
+        # Posicionar en una segunda línea dentro del área de información (y < alto)
+        y_timers = 628
+        self.pantalla.blit(texto_b, (20, y_timers))
+        self.pantalla.blit(texto_n, (350, y_timers))
+
 def main():
     try:
         interfaz = InterfazUsuario()
@@ -325,6 +372,10 @@ def main():
         clock = pygame.time.Clock()
 
         while ejecutando:
+            # calcular dt y actualizar temporizadores
+            dt = clock.tick(60) / 1000.0  # segundos desde el último frame
+            interfaz.actualizar_tiempos(dt)
+
             continuar, click = interfaz.manejar_eventos()
             if not continuar:
                 break
@@ -347,7 +398,6 @@ def main():
                             seleccionado = click
                         else:
                             seleccionado = None
-            clock.tick(60)  # 60 FPS                
             interfaz.dibujar_tablero(seleccionado)
             pygame.display.flip()
             
