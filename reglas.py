@@ -111,3 +111,51 @@ class MotorUCI:
                 self.engine.quit()
         except Exception:
             pass
+class Reglas:
+    def __init__(self):
+        self.board = chess.Board() if chess is not None else None
+    def actualizar(self, casillas: Dict[Tuple[int, int], Optional[Pieza]], turno: Color):
+        if self.board is None:
+            return
+        fen = tablero_a_fen(casillas, turno)
+        self.board.set_fen(fen)
+    def es_legal(self, casillas: Dict[Tuple[int, int], Optional[Pieza]], turno: Color, origen: Tuple[int, int], destino: Tuple[int, int]) -> bool:
+        if self.board is None:
+            return False
+        self.actualizar(casillas, turno)
+        o = chess.square(origen[0], 7 - origen[1])
+        d = chess.square(destino[0], 7 - destino[1])
+        return chess.Move(o, d) in self.board.legal_moves
+    def esta_en_jaque(self, casillas: Dict[Tuple[int, int], Optional[Pieza]], turno_consulta: Color) -> bool:
+        if self.board is None:
+            return False
+        original = self.board.turn
+        self.actualizar(casillas, turno_consulta)
+        self.board.turn = (turno_consulta == Color.BLANCO)
+        res = self.board.is_check()
+        self.board.turn = original
+        return res
+    def esta_en_jaque_mate(self, casillas: Dict[Tuple[int, int], Optional[Pieza]], turno_consulta: Color) -> bool:
+        if self.board is None:
+            return False
+        original = self.board.turn
+        self.actualizar(casillas, turno_consulta)
+        self.board.turn = (turno_consulta == Color.BLANCO)
+        res = self.board.is_checkmate()
+        self.board.turn = original
+        return res
+def sugerir_movimiento(casillas: Dict[Tuple[int, int], Optional[Pieza]], turno: Color, motor: str = "stockfish", nivel: str = "medio", ruta_motor: Optional[str] = None) -> Optional[str]:
+    niveles = {"facil": 200, "medio": 500, "dificil": 2000}
+    tiempo_ms = niveles.get(nivel, 500)
+    if ruta_motor is None:
+        if motor.lower() in ("stockfish", "sf"):
+            ruta_motor = "stockfish.exe"
+        elif motor.lower() in ("lc0", "leela", "leelachesszero"):
+            ruta_motor = "lc0.exe"
+        else:
+            return None
+    fen = tablero_a_fen(casillas, turno)
+    m = MotorUCI(ruta_motor, tiempo_ms=tiempo_ms)
+    jugada = m.mejor_jugada(fen)
+    m.cerrar()
+    return jugada

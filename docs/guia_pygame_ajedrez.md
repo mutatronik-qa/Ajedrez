@@ -450,3 +450,36 @@ Buenas prácticas de POO en este ejercicio:
 - Agregar temporizadores y estado de fin de partida
 - Escribir tests básicos de reglas y utilidades
 
+---
+
+## Motores UCI locales y niveles de dificultad
+
+Para jugar contra una IA local sin depender de servicios externos, integra motores UCI:
+- Stockfish (rápido y fuerte, binarios disponibles para Windows)
+- Leela Chess Zero (LCZero, requiere red neuronal y GPU para rendir)
+- AlphaZero (conceptual; no hay binario UCI público, útil como inspiración)
+
+Instalación y rutas:
+- Descarga Stockfish y coloca el ejecutable accesible (por ejemplo, `stockfish.exe` en PATH o junto al proyecto).
+- Descarga LCZero (`lc0.exe`) y la red (`.pb.gz`) si quieres experimentar; su rendimiento depende de la GPU.
+
+Uso desde `reglas.py`:
+
+```python
+from reglas import sugerir_movimiento
+
+# casillas: Dict[(x,y), Pieza|None], turno: Color
+lan = sugerir_movimiento(casillas, turno, motor="stockfish", nivel="medio")
+# niveles: "facil" (~200 ms), "medio" (~500 ms), "dificil" (~2000 ms)
+# motor puede ser "stockfish" o "lc0"; también puedes pasar ruta_motor explícita
+```
+
+Recomendaciones:
+- Empieza con Stockfish por su facilidad y velocidad.
+- LCZero puede ser más lento y necesita configuración de backend; úsalo para análisis y aprendizaje.
+- AlphaZero no se integra directamente como UCI; considera su enfoque para ideas de entrenamiento y heurísticas.
+
+Siguientes pasos:
+- Añade una opción “Jugador vs IA (motor local)” en el menú y usa `sugerir_movimiento`.
+- Expone selector de nivel en la UI para ajustar el tiempo por jugada.
+
