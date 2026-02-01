@@ -38,6 +38,8 @@ def main():
                         seleccionado = click
                 else:
                     if interfaz.tablero.realizar_movimiento(seleccionado, click):
+                        # Reproducir sonido al mover la ficha (si está disponible)
+                        interfaz.reproducir_sonido_movimiento()
                         seleccionado = None
                     else:
                         if (click in interfaz.tablero.casillas and 

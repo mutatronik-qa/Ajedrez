@@ -11,15 +11,22 @@ from tablero import Tablero
 
 class Menu:
     def __init__(self, opciones: List[str]):
-        """Inicializa el menú con una lista de opciones."""
+        """Inicializa el menú con una lista de opciones.
+        - Carga el sonido 'ficha.mp3' para reproducir al navegar/confirmar.
+        """
         pygame.init()
         self.pantalla = pygame.display.set_mode((600, 400))
         self.fuente = pygame.font.SysFont('Arial', 28)
         self.opciones = opciones
         self.seleccion = 0
+        # Gestor de recursos para acceder a sonidos del proyecto
+        self._gestor = GestorRecursos()
+        self._sonido_ficha = self._gestor.obtener_sonido("FICHA")
     
     def loop(self) -> Optional[str]:
-        """Bucle del menú: manejar teclas y devolver la opción seleccionada."""
+        """Bucle del menú: manejar teclas y devolver la opción seleccionada.
+        - Reproduce sonido al moverse por el menú y al confirmar.
+        """
         clock = pygame.time.Clock()
         while True:
             for event in pygame.event.get():
@@ -28,9 +35,15 @@ class Menu:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
                         self.seleccion = (self.seleccion - 1) % len(self.opciones)
+                        if self._sonido_ficha:
+                            self._sonido_ficha.play()
                     if event.key == pygame.K_DOWN:
                         self.seleccion = (self.seleccion + 1) % len(self.opciones)
+                        if self._sonido_ficha:
+                            self._sonido_ficha.play()
                     if event.key == pygame.K_RETURN:
+                        if self._sonido_ficha:
+                            self._sonido_ficha.play()
                         return self.opciones[self.seleccion]
             self.pantalla.fill((30, 30, 30))
             for idx, texto in enumerate(self.opciones):
@@ -42,7 +55,9 @@ class Menu:
 
 class InterfazUsuario:
     def __init__(self):
-        """Crea la UI principal y recursos necesarios para dibujar el tablero."""
+        """Crea la UI principal y recursos necesarios para dibujar el tablero.
+        - Carga el sonido 'ficha.mp3' para reproducir en cada movimiento del juego.
+        """
         pygame.init()
         self.ancho = 600
         self.alto = 650
@@ -50,6 +65,8 @@ class InterfazUsuario:
         pygame.display.set_caption('Ajedrez')
         self.gestor_recursos = GestorRecursos()
         self.tablero = Tablero(self.gestor_recursos)
+        # Sonido de ficha (puede ser None si no está disponible)
+        self.sonido_ficha = self.gestor_recursos.obtener_sonido("FICHA")
         self.cuadrado_tamano = self.ancho // 8
         self.colores = {
             'claro': (240, 217, 181),
@@ -142,3 +159,11 @@ class InterfazUsuario:
         y_timers = 628
         self.pantalla.blit(texto_b, (20, y_timers))
         self.pantalla.blit(texto_n, (350, y_timers))
+    
+    def reproducir_sonido_movimiento(self):
+        """Reproduce el sonido de movimiento de ficha si está disponible."""
+        try:
+            if self.sonido_ficha:
+                self.sonido_ficha.play()
+        except Exception as e:
+            print(f"Advertencia: no se pudo reproducir sonido de ficha: {e}")
