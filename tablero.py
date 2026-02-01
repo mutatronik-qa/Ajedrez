@@ -1,9 +1,17 @@
+"""Lógica del tablero y estado del juego.
+
+Responsabilidades:
+- Mantener casillas, turno y estado (jugando, jaque, mate)
+- Ejecutar movimientos y validar jaque/jaque mate básicos
+- Inicializar las piezas en posiciones estándar
+"""
 from typing import List, Tuple, Optional, Dict
 from modelos import Color, TipoPieza, EstadoJuego, GestorRecursos
 from pieza import Pieza
 
 class Tablero:
     def __init__(self, gestor_recursos: GestorRecursos):
+        """Inicializa el tablero con recursos y disposición inicial."""
         self.casillas: Dict[Tuple[int, int], Optional[Pieza]] = {}
         self.estado = EstadoJuego.JUGANDO
         self.turno = Color.BLANCO
@@ -13,6 +21,7 @@ class Tablero:
         
     def realizar_movimiento(self, origen: Tuple[int, int], 
                            destino: Tuple[int, int]) -> bool:
+        """Intenta mover una pieza de origen a destino; actualiza turno y estado."""
         try:
             if origen not in self.casillas:
                 return False
@@ -59,6 +68,7 @@ class Tablero:
             return False
             
     def esta_en_jaque(self, color: Color) -> bool:
+        """Comprueba si el rey del color indicado está bajo ataque."""
         posicion_rey = None
         for pos, pieza in self.casillas.items():
             if pieza and pieza.color == color and pieza.tipo == TipoPieza.REY:
@@ -74,6 +84,7 @@ class Tablero:
         return False
         
     def esta_en_jaque_mate(self, color: Color) -> bool:
+        """Determina si el color indicado está en jaque y no tiene movimientos que lo eviten."""
         if not self.esta_en_jaque(color):
             return False
         for pos, pieza in self.casillas.items():
@@ -94,6 +105,7 @@ class Tablero:
         return True
         
     def inicializar_tablero(self):
+        """Coloca piezas y peones en el tablero en su posición inicial estándar."""
         for i in range(8):
             self.casillas[(i, 1)] = Pieza(Color.BLANCO, TipoPieza.PEON)
             self.casillas[(i, 6)] = Pieza(Color.NEGRO, TipoPieza.PEON)

@@ -1,3 +1,8 @@
+"""Modelos de dominio y gestor de recursos.
+
+- Color, TipoPieza, EstadoJuego: enumeraciones del juego
+- GestorRecursos: carga y entrega imágenes de piezas con tolerancia a faltantes
+"""
 from enum import Enum
 import os
 import pygame
@@ -23,11 +28,13 @@ class EstadoJuego(Enum):
 
 class GestorRecursos:
     def __init__(self):
+        """Inicializa el gestor y carga las imágenes desde el directorio 'images'."""
         self.imagenes = {}
         self.directorio_actual = os.path.dirname(os.path.abspath(__file__))
         self.cargar_imagenes()
         
     def cargar_imagenes(self):
+        """Intentar cargar imágenes; si faltan, crear superficies de color como placeholder."""
         self.directorio_imagenes = os.path.join(self.directorio_actual, "images")
         if not os.path.exists(self.directorio_imagenes):
             os.makedirs(self.directorio_imagenes)
@@ -65,6 +72,7 @@ class GestorRecursos:
                 pygame.draw.rect(self.imagenes[nombre], color, (0, 0, 60, 60))
                 
     def obtener_imagen(self, color: Color, tipo: TipoPieza) -> pygame.Surface:
+        """Devuelve la imagen correspondiente a color/tipo; retorna un placeholder si no existe."""
         nombre_imagen = f"{tipo.value.upper()}_{'BLANCO' if color == Color.BLANCO else 'NEGRO'}"
         if nombre_imagen not in self.imagenes:
             print(f"Advertencia: No se encontró la imagen {nombre_imagen}")

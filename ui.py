@@ -1,3 +1,9 @@
+"""Módulo de interfaz de usuario (UI) y menú.
+
+Responsabilidades:
+- Menu: navegación por teclado para seleccionar el modo de juego
+- InterfazUsuario: render del tablero, manejo de eventos y temporizadores
+"""
 import pygame
 from typing import List, Optional, Tuple, Dict
 from modelos import Color, EstadoJuego, GestorRecursos
@@ -5,6 +11,7 @@ from tablero import Tablero
 
 class Menu:
     def __init__(self, opciones: List[str]):
+        """Inicializa el menú con una lista de opciones."""
         pygame.init()
         self.pantalla = pygame.display.set_mode((600, 400))
         self.fuente = pygame.font.SysFont('Arial', 28)
@@ -12,6 +19,7 @@ class Menu:
         self.seleccion = 0
     
     def loop(self) -> Optional[str]:
+        """Bucle del menú: manejar teclas y devolver la opción seleccionada."""
         clock = pygame.time.Clock()
         while True:
             for event in pygame.event.get():
@@ -34,6 +42,7 @@ class Menu:
 
 class InterfazUsuario:
     def __init__(self):
+        """Crea la UI principal y recursos necesarios para dibujar el tablero."""
         pygame.init()
         self.ancho = 600
         self.alto = 650
@@ -60,6 +69,7 @@ class InterfazUsuario:
         self.timers_activos = True
          
     def manejar_eventos(self) -> Tuple[bool, Optional[Tuple[int, int]]]:
+        """Procesa eventos de Pygame y traduce clics a coordenadas de casilla."""
         try:
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
@@ -74,6 +84,7 @@ class InterfazUsuario:
             return True, None
         
     def actualizar_tiempos(self, dt: float):
+        """Actualiza temporizadores por turno; marca fin si un jugador agota tiempo."""
         try:
             if not self.timers_activos:
                 return
@@ -89,6 +100,7 @@ class InterfazUsuario:
             print(f"Error en actualizar_tiempos: {e}")
         
     def dibujar_tablero(self, seleccionado=None):
+        """Dibuja casillas y piezas; resalta la casilla seleccionada."""
         self.pantalla.fill(self.colores['fondo_info'])
         for i in range(8):
             for j in range(8):
@@ -109,6 +121,7 @@ class InterfazUsuario:
         self.dibujar_informacion()
     
     def dibujar_informacion(self):
+        """Muestra turno, estado y temporizadores en el panel inferior."""
         pygame.draw.rect(self.pantalla, self.colores['fondo_info'], 
                        (0, 600, self.ancho, 50))
         turno_texto = f"Turno: {'Blancas' if self.tablero.turno == Color.BLANCO else 'Negras'}"
