@@ -1,6 +1,7 @@
 from __future__ import annotations
 import pygame
 from typing import List, Tuple
+from modelos import Color, TipoPieza
 
 class Pieza:
     def __init__(self, color: Color, tipo: TipoPieza):

@@ -399,6 +399,38 @@ Referencias:
 
 ---
 
+## Práctica: Integrar recurso de Kaggle (Chess Benchmarks)
+
+Como ejercicio de integración y manejo robusto de recursos externos, incorpora el recurso “Chess Leaderboard” de Kaggle en tu proyecto. Este recurso puede no estar siempre disponible y ocasionalmente falla al cargarse en el navegador con mensajes como “TypeError: Failed to fetch”. Aprovecha esto para:
+- Practicar manejo de errores y timeouts al consumir recursos externos.
+- Implementar fallback local (por ejemplo, mostrar un mensaje en la UI o cargar datos simulados).
+- Separar claramente la capa de datos (fetch/parsing) de la UI.
+
+Ejemplo simple de manejo con `requests`:
+
+```python
+import requests
+
+def recurso_kaggle_chess_leaderboard() -> dict:
+    url = "https://www.kaggle.com/benchmarks/kaggle/chess/versions/1"
+    try:
+        r = requests.get(url, timeout=8)
+        r.raise_for_status()
+        return {"ok": True, "html": r.text[:1000]}
+    except requests.RequestException as e:
+        return {"ok": False, "error": str(e)}
+```
+
+Integración en tu menú:
+- Añade una opción “Recursos Kaggle”.
+- En el handler, llama `recurso_kaggle_chess_leaderboard()` y muestra el resultado:
+  - Si `ok` es True, indica que el recurso respondió (y opcionalmente guarda un snapshot).
+  - Si `ok` es False, muestra un mensaje de error amigable en la UI.
+
+Buenas prácticas de POO en este ejercicio:
+- Encapsular la función de obtención de recurso en un módulo `recursos.py`.
+- No mezclar lógica de red con renderizado: la UI sólo consume resultados ya preparados.
+- Registrar estados en tu modelo (p.ej., `estado_recurso`, `error_recurso`) para trazabilidad.
 ## Rutas de mejora
 
 - Guardado de partidas en PGN y carga desde PGN
