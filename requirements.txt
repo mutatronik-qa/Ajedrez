@@ -1,5 +1,20 @@
 # Dependencias del proyecto Ajedrez (Pygame y utilidades de red)
+
+# Librería principal para interfaz gráfica y sonido
 pygame>=2.5.0
-requests>=2.31.0
+
+# Motor de ajedrez y validación de reglas
 python-chess>=1.999
-chess-engine>=1.3.3
+
+# Las siguientes librerías son estándar de Python (no requieren instalación):
+# - socket: comunicación en red para modo LAN
+# - json: protocolo de mensajes para partidas en red
+# - threading: hilos para escucha asíncrona de movimientos
+# - typing: anotaciones de tipos
+# - enum: enumeraciones (Color, TipoPieza, EstadoJuego)
+# - os: gestión de rutas y archivos
+# - subprocess: ejecución de motores UCI externos (Stockfish, LCZero)
+# - chessengine: integración con motores UCI
+# NOTA: requests no se usa actualmente en el código principal
+# pero puede ser útil para futuras integraciones con Chess.com API
+# requests>=2.31.0

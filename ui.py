@@ -4,6 +4,7 @@ Responsabilidades:
 - Menu: navegación por teclado para seleccionar el modo de juego
 - InterfazUsuario: render del tablero, manejo de eventos y temporizadores
 """
+import os
 import pygame
 from typing import List, Optional, Tuple, Dict
 from modelos import Color, EstadoJuego, GestorRecursos
@@ -22,6 +23,16 @@ class Menu:
         # Gestor de recursos para acceder a sonidos del proyecto
         self._gestor = GestorRecursos()
         self._sonido_ficha = self._gestor.obtener_sonido("FICHA")
+        # Fondo del menú (menu.png en /images). Si no existe, se deja None.
+        self._fondo_menu = None
+        try:
+            # Cargar y escalar la imagen de fondo al tamaño de la ventana
+            ruta_fondo = os.path.join(self._gestor.directorio_imagenes, "menu.png")
+            fondo = pygame.image.load(ruta_fondo).convert()
+            self._fondo_menu = pygame.transform.scale(fondo, self.pantalla.get_size())
+        except Exception:
+            # Si falla la carga, se usa un fondo sólido por defecto
+            self._fondo_menu = None
     
     def loop(self) -> Optional[str]:
         """Bucle del menú: manejar teclas y devolver la opción seleccionada.
@@ -45,7 +56,11 @@ class Menu:
                         if self._sonido_ficha:
                             self._sonido_ficha.play()
                         return self.opciones[self.seleccion]
-            self.pantalla.fill((30, 30, 30))
+            # Dibujar fondo del menú si está disponible
+            if self._fondo_menu:
+                self.pantalla.blit(self._fondo_menu, (0, 0))
+            else:
+                self.pantalla.fill((30, 30, 30))
             for idx, texto in enumerate(self.opciones):
                 color = (255, 255, 255) if idx == self.seleccion else (180, 180, 180)
                 superficie = self.fuente.render(texto, True, color)
@@ -84,6 +99,8 @@ class InterfazUsuario:
             Color.NEGRO: float(self.tiempo_inicial_seg)
         }
         self.timers_activos = True
+        # Mensaje de estado adicional para modos especiales (LAN, espera, etc.)
+        self.mensaje_estado: Optional[str] = None
          
     def manejar_eventos(self) -> Tuple[bool, Optional[Tuple[int, int]]]:
         """Procesa eventos de Pygame y traduce clics a coordenadas de casilla."""
@@ -141,6 +158,13 @@ class InterfazUsuario:
         """Muestra turno, estado y temporizadores en el panel inferior."""
         pygame.draw.rect(self.pantalla, self.colores['fondo_info'], 
                        (0, 600, self.ancho, 50))
+        
+        # Si hay un mensaje de estado especial (ej: "Esperando conexión..."), mostrarlo
+        if self.mensaje_estado:
+            texto_superficie = self.fuente.render(self.mensaje_estado, True, self.colores['texto'])
+            self.pantalla.blit(texto_superficie, (20, 610))
+            return
+        
         turno_texto = f"Turno: {'Blancas' if self.tablero.turno == Color.BLANCO else 'Negras'}"
         texto_superficie = self.fuente.render(turno_texto, True, self.colores['texto'])
         self.pantalla.blit(texto_superficie, (20, 610))
