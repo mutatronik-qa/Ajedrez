@@ -99,6 +99,8 @@ class InterfazUsuario:
             Color.NEGRO: float(self.tiempo_inicial_seg)
         }
         self.timers_activos = True
+        # Mensaje de estado adicional para modos especiales (LAN, espera, etc.)
+        self.mensaje_estado: Optional[str] = None
          
     def manejar_eventos(self) -> Tuple[bool, Optional[Tuple[int, int]]]:
         """Procesa eventos de Pygame y traduce clics a coordenadas de casilla."""
@@ -156,6 +158,13 @@ class InterfazUsuario:
         """Muestra turno, estado y temporizadores en el panel inferior."""
         pygame.draw.rect(self.pantalla, self.colores['fondo_info'], 
                        (0, 600, self.ancho, 50))
+        
+        # Si hay un mensaje de estado especial (ej: "Esperando conexión..."), mostrarlo
+        if self.mensaje_estado:
+            texto_superficie = self.fuente.render(self.mensaje_estado, True, self.colores['texto'])
+            self.pantalla.blit(texto_superficie, (20, 610))
+            return
+        
         turno_texto = f"Turno: {'Blancas' if self.tablero.turno == Color.BLANCO else 'Negras'}"
         texto_superficie = self.fuente.render(turno_texto, True, self.colores['texto'])
         self.pantalla.blit(texto_superficie, (20, 610))

@@ -17,11 +17,13 @@ Se sugiere una carpeta de paquete `ajedrez/` con archivos especializados:
 - `reglas.py`: validaciones de legalidad, jaque, mate, empate y reglas especiales
 - `ui.py`: renderizado y eventos Pygame
 - `main.py`: menú y orquestación de modos de juego
+- `lan.py`: comunicación en red para partidas LAN (servidor y cliente)
 - `api_chess.py`: llamadas a Chess-API (Stockfish online)
 - `api_chess_com.py`: llamadas a Chess.com PubAPI (datos públicos)
 
 En tu repo ya existen variantes como:
 - [main.py](file:///e:/GIT/Ajedrez/main.py)
+- [lan.py](file:///e:/GIT/Ajedrez/lan.py)
 - [ajedrez/main.py](file:///e:/GIT/Ajedrez/ajedrez/main.py)
 - [ajedrez/pieza.py](file:///e:/GIT/Ajedrez/ajedrez/pieza.py)
 - [ajedrez/tablero.py](file:///e:/GIT/Ajedrez/ajedrez/tablero.py)
@@ -437,6 +439,165 @@ Buenas prácticas de POO en este ejercicio:
 - Anotación SAN y resaltado de últimas jugadas
 - Modo análisis con flechas y evaluación de Chess-API
 - Integración de perfiles y archivos de Chess.com en una vista informativa
+
+---
+
+## Etapa 6: Juego en red LAN
+
+Para permitir partidas entre dos equipos en la misma red local, implementa comunicación cliente-servidor usando sockets.
+
+### Arquitectura del sistema LAN
+
+**Servidor (lan.py - ServidorAjedrez)**
+- Escucha conexiones en un puerto específico (por defecto 8080)
+- Juega con las piezas blancas
+- Envía y recibe movimientos del cliente conectado
+
+**Cliente (lan.py - ClienteAjedrez)**
+- Se conecta al servidor usando su dirección IP
+- Juega con las piezas negras
+- Sincroniza movimientos con el servidor
+
+### Protocolo de comunicación
+
+Los movimientos se envían como mensajes JSON separados por saltos de línea (`\n`):
+
+```json
+{
+  "tipo": "movimiento",
+  "origen": [x, y],
+  "destino": [x, y]
+}
+```
+
+### Implementación básica
+
+**Crear servidor:**
+
+```python
+from lan import ServidorAjedrez
+
+# Crear e iniciar servidor
+servidor = ServidorAjedrez(puerto=8080)
+servidor.iniciar()
+
+# Esperar conexión (con timeout de 60 segundos)
+if servidor.esperar_conexion(timeout=60.0):
+    print("Cliente conectado")
+    
+    # Establecer callback para recibir movimientos
+    def recibir_movimiento(origen, destino):
+        print(f"Movimiento recibido: {origen} -> {destino}")
+        # Aplicar movimiento al tablero
+        tablero.realizar_movimiento(origen, destino)
+    
+    servidor.establecer_callback_movimiento(recibir_movimiento)
+    
+    # Enviar un movimiento al cliente
+    servidor.enviar_movimiento((4, 6), (4, 4))  # e2 -> e4
+```
+
+**Conectar como cliente:**
+
+```python
+from lan import ClienteAjedrez
+
+# Crear y conectar cliente
+cliente = ClienteAjedrez()
+if cliente.conectar(host="192.168.1.100", puerto=8080, timeout=10.0):
+    print("Conectado al servidor")
+    
+    # Establecer callback para recibir movimientos
+    def recibir_movimiento(origen, destino):
+        print(f"Movimiento recibido: {origen} -> {destino}")
+        tablero.realizar_movimiento(origen, destino)
+    
+    cliente.establecer_callback_movimiento(recibir_movimiento)
+    
+    # Enviar un movimiento al servidor
+    cliente.enviar_movimiento((4, 1), (4, 3))  # e7 -> e5
+```
+
+### Integración con main.py
+
+El menú principal incluye dos opciones nuevas:
+- "Partida LAN - Crear Servidor": Inicia un servidor y espera conexión
+- "Partida LAN - Unirse a Servidor": Solicita IP y se conecta al servidor
+
+```python
+def juego_lan_servidor():
+    """Ejecuta una partida LAN actuando como servidor (juega con blancas)."""
+    servidor = ServidorAjedrez(puerto=8080)
+    servidor.iniciar()
+    
+    # Mostrar mensaje de espera en pantalla
+    interfaz.mensaje_estado = "Esperando conexión del cliente..."
+    interfaz.dibujar_tablero()
+    pygame.display.flip()
+    
+    if servidor.esperar_conexion(timeout=60.0):
+        # Configurar callback y comenzar partida
+        servidor.establecer_callback_movimiento(lambda o, d: aplicar_movimiento_red(o, d))
+        # ... bucle de juego
+```
+
+### Consideraciones importantes
+
+**Control de turnos:**
+- El servidor solo puede mover cuando `turno == Color.BLANCO`
+- El cliente solo puede mover cuando `turno == Color.NEGRO`
+- Los movimientos del oponente se reciben por callbacks y se aplican automáticamente
+
+**Sincronización:**
+- Los movimientos se envían inmediatamente después de validarse localmente
+- El hilo de escucha recibe movimientos en segundo plano
+- Los callbacks se invocan desde el hilo de red, no desde el hilo principal
+
+**Desconexión:**
+- Ambos lados detectan desconexión cuando `recv()` devuelve cadena vacía
+- Al cerrar la ventana, se llama a `servidor.cerrar()` o `cliente.cerrar()`
+- Los hilos de escucha finalizan automáticamente
+
+**Configuración de firewall:**
+- El servidor debe permitir conexiones entrantes en el puerto 8080
+- En Windows: Panel de Control > Sistema y Seguridad > Firewall de Windows
+- Crear regla de entrada para permitir puerto TCP 8080
+
+**Obtener dirección IP (Windows):**
+```cmd
+ipconfig
+```
+Buscar "Dirección IPv4" en la interfaz de red activa (ej: 192.168.1.100)
+
+### Ejemplo de uso completo
+
+**Equipo 1 (Servidor):**
+1. Ejecutar `python main.py`
+2. Seleccionar "Partida LAN - Crear Servidor"
+3. Obtener IP local con `ipconfig`
+4. Comunicar IP al otro jugador
+5. Esperar conexión (pantalla muestra "Esperando conexión...")
+6. Jugar con blancas
+
+**Equipo 2 (Cliente):**
+1. Ejecutar `python main.py`
+2. Seleccionar "Partida LAN - Unirse a Servidor"
+3. Introducir IP del servidor (ej: 192.168.1.100)
+4. Esperar confirmación de conexión
+5. Jugar con negras
+
+### Mejoras futuras
+
+- Chat integrado entre jugadores
+- Reconexión automática en caso de fallo temporal
+- Sincronización de temporizadores
+- Indicador visual de latencia/ping
+- Soporte para múltiples partidas simultáneas
+- Modo espectador
+
+Referencia:
+- [lan.py: ServidorAjedrez y ClienteAjedrez](file:///e:/GIT/Ajedrez/lan.py)
+- [main.py: juego_lan_servidor y juego_lan_cliente](file:///e:/GIT/Ajedrez/main.py)
 
 ---
 
