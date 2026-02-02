@@ -1,20 +1,39 @@
-# Dependencias del proyecto Ajedrez (Pygame y utilidades de red)
+# ==============================================================================
+# DEPENDENCIAS DEL PROYECTO AJEDREZ v2.0
+# ==============================================================================
+# Versiones probadas con Python 3.14.2 en Windows 10/11
+# Instalación: pip install -r requirements.txt
+# ==============================================================================
 
-# Librería principal para interfaz gráfica y sonido
-pygame>=2.5.0
+# MOTOR GRÁFICO Y MULTIMEDIA
+# pygame-ce (Community Edition) - Último soporte para Python 3.14+
+# Incluye: Renderización 2D, manejo de eventos, sprites, fuentes, sonido
+pygame-ce==2.5.6
 
-# Motor de ajedrez y validación de reglas
-python-chess>=1.999
+# MOTORES Y LIBRERÍAS DE AJEDREZ
+# python-chess - Validación de movimientos, generación de FEN, integración UCI
+python-chess==1.999
 
-# Las siguientes librerías son estándar de Python (no requieren instalación):
-# - socket: comunicación en red para modo LAN
-# - json: protocolo de mensajes para partidas en red
-# - threading: hilos para escucha asíncrona de movimientos
-# - typing: anotaciones de tipos
-# - enum: enumeraciones (Color, TipoPieza, EstadoJuego)
-# - os: gestión de rutas y archivos
-# - subprocess: ejecución de motores UCI externos (Stockfish, LCZero)
-# - chessengine: integración con motores UCI
-# NOTA: requests no se usa actualmente en el código principal
-# pero puede ser útil para futuras integraciones con Chess.com API
-# requests>=2.31.0
+# ==============================================================================
+# LIBRERÍAS ESTÁNDAR (No requieren instalación vía pip)
+# ==============================================================================
+# socket       - Comunicación TCP/UDP para modo LAN (servidores y clientes)
+# json         - Protocolo de serialización para mensajes entre jugadores
+# threading    - Hilos asincronos para escucha de movimientos en red
+# typing       - Anotaciones de tipos (Python 3.5+)
+# enum         - Enumeraciones: Color, TipoPieza, EstadoJuego
+# os           - Rutas relativas, gestión de directorios
+# subprocess   - Ejecución de motores UCI externos (Stockfish, LCZero)
+# pickle       - Serialización de objetos (historial de partidas)
+
+# ==============================================================================
+# LIBRERÍAS OPCIONALES (Comentadas por defecto)
+# ==============================================================================
+# Descomenta si quieres agregar funcionalidades futuras:
+
+# requests>=2.31.0     - API Chess.com, online ratings, bases de datos
+# pillow>=10.0.0       - Procesamiento de imágenes para tablero personalizado
+# numpy>=1.24.0        - Cálculos numéricos avanzados para IA
+# pyaudio>=0.2.13      - Captura de audio (futuro: comandos de voz)
+# websockets>=12.0     - Protocolo WebSocket para servidores online
+

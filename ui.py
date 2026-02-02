@@ -8,7 +8,7 @@ import os
 import pygame
 from typing import List, Optional, Tuple, Dict
 from modelos import Color, EstadoJuego, GestorRecursos
-from tablero import Tablero
+from ajedrez_clasico import Tablero
 
 class Menu:
     def __init__(self, opciones: List[str]):
