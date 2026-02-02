@@ -1,93 +1,17 @@
-import pygame
-import random
+"""Lógica del tablero y estado del juego.
+
+Responsabilidades:
+- Mantener casillas, turno y estado (jugando, jaque, mate)
+- Ejecutar movimientos y validar jaque/jaque mate básicos
+- Inicializar las piezas en posiciones estándar
+"""
 from typing import List, Tuple, Optional, Dict
-from enum import Enum
-import os
+from modelos import Color, TipoPieza, EstadoJuego, GestorRecursos
+from pieza import Pieza
 
-class Color(Enum):
-    BLANCO = "blanco"
-    NEGRO = "negro"
-
-class TipoPieza(Enum):
-    REY = "rey"
-    REINA = "reina"
-    TORRE = "torre"
-    ALFIL = "alfil"
-    CABALLO = "caballo"
-    PEON = "peon"
-
-class EstadoJuego(Enum):
-    JUGANDO = "jugando"
-    JAQUE = "jaque"
-    JAQUE_MATE = "jaque_mate"
-    EMPATE = "empate"
-
-class Pieza:
-    def __init__(self, color: Color, tipo: TipoPieza):
-        self.color = color
-        self.tipo = tipo
-        self.posicion = None
-        self.movimientos = 0
-        self.imagen = None
-        
-    def obtener_movimientos_validos(self, tablero) -> List[Tuple[int, int]]:
-        return []
-
-class GestorRecursos:
-    def __init__(self):
-        self.imagenes = {}
-        # Obtener el directorio actual
-        self.directorio_actual = os.path.dirname(os.path.abspath(__file__))
-        self.cargar_imagenes()
-        
-    def cargar_imagenes(self):
-        # Crear el directorio images si no existe
-        self.directorio_imagenes = os.path.join(self.directorio_actual, "images")
-        if not os.path.exists(self.directorio_imagenes):
-            os.makedirs(self.directorio_imagenes)
-            print("Se creó el directorio 'images'")
-            
-    
-        # Intentar cargar cada imagen
-        nombres_imagenes = {
-            "TORRE_BLANCA": "torre_blanca.png",
-            "CABALLO_BLANCO": "caballo_blanco.png",
-            "ALFIL_BLANCO": "alfil_blanco.png",
-            "REINA_BLANCA": "reina_blanca.png",
-            "REY_BLANCO": "rey_blanco.png",
-            "PEON_BLANCO": "peon_blanco.png",
-            "TORRE_NEGRA": "torre_negra.png",
-            "CABALLO_NEGRO": "caballo_negro.png",
-            "ALFIL_NEGRO": "alfil_negro.png",
-            "REINA_NEGRA": "reina_negra.png",
-            "REY_NEGRO": "rey_negro.png",
-            "PEON_NEGRO": "peon_negro.png"
-        }
-        
-        for nombre, archivo in nombres_imagenes.items():
-            ruta_completa = os.path.join(self.directorio_imagenes, archivo)
-            try:
-                # Usar convert_alpha() para manejar transparencia
-                imagen = pygame.image.load(ruta_completa).convert_alpha()
-                imagen = pygame.transform.scale(imagen, (60, 60))
-                self.imagenes[nombre] = imagen
-                print(f"Imagen cargada: {archivo}")
-            except pygame.error:
-                print(f"Advertencia: No se pudo cargar {archivo}")
-                # Crear superficie con color específico para cada tipo de pieza
-                self.imagenes[nombre] = pygame.Surface((60, 60), pygame.SRCALPHA)
-                if "NEGRO" in nombre:
-                    color = (139, 69, 19)  # Marrón oscuro
-                else:
-                    color = (240, 217, 181)  # Color claro para piezas blancas
-                pygame.draw.rect(self.imagenes[nombre], color, (0, 0, 60, 60))
-                
-    def obtener_imagen(self, color: Color, tipo: TipoPieza) -> pygame.Surface:
-        nombre_imagen = f"{tipo.value.upper()}_{color.value.upper()}"
-        return self.imagenes.get(nombre_imagen, pygame.Surface((60, 60), pygame.SRCALPHA))
-    
 class Tablero:
     def __init__(self, gestor_recursos: GestorRecursos):
+        """Inicializa el tablero con recursos y disposición inicial."""
         self.casillas: Dict[Tuple[int, int], Optional[Pieza]] = {}
         self.estado = EstadoJuego.JUGANDO
         self.turno = Color.BLANCO
@@ -97,40 +21,95 @@ class Tablero:
         
     def realizar_movimiento(self, origen: Tuple[int, int], 
                            destino: Tuple[int, int]) -> bool:
+        """Intenta mover una pieza de origen a destino; actualiza turno y estado."""
         try:
             if origen not in self.casillas:
                 return False
                 
             pieza = self.casillas[origen]
-            if pieza.color != self.turno:
+            if pieza is None or pieza.color != self.turno:
                 return False
                 
             movimientos_validos = pieza.obtener_movimientos_validos(self)
             if destino not in movimientos_validos:
                 return False
-                
-            # Realizar el movimiento
+            
+            pieza_destino = self.casillas.get(destino)
             self.casillas[destino] = pieza
             self.casillas[origen] = None
+            posicion_anterior = pieza.posicion
             pieza.posicion = destino
             pieza.movimientos += 1
+            
+            color_actual = pieza.color
+            if self.esta_en_jaque(color_actual):
+                self.casillas[origen] = pieza
+                self.casillas[destino] = pieza_destino
+                pieza.posicion = posicion_anterior
+                pieza.movimientos -= 1
+                return False
+            
             self.historial_movimientos.append((origen, destino))
             
-            # Cambiar turno
-            self.turno = Color.NEGRO if self.turno == Color.BLANCO else Color.BLANCO
+            color_oponente = Color.NEGRO if color_actual == Color.BLANCO else Color.BLANCO
+            self.turno = color_oponente
+            
+            if self.esta_en_jaque(color_oponente):
+                if self.esta_en_jaque_mate(color_oponente):
+                    self.estado = EstadoJuego.JAQUE_MATE
+                else:
+                    self.estado = EstadoJuego.JAQUE
+            else:
+                self.estado = EstadoJuego.JUGANDO
             
             return True
         except Exception as e:
             print(f"Error en realizar_movimiento: {e}")
             return False
+            
+    def esta_en_jaque(self, color: Color) -> bool:
+        """Comprueba si el rey del color indicado está bajo ataque."""
+        posicion_rey = None
+        for pos, pieza in self.casillas.items():
+            if pieza and pieza.color == color and pieza.tipo == TipoPieza.REY:
+                posicion_rey = pos
+                break
+        if not posicion_rey:
+            return False
+        for pos, pieza in self.casillas.items():
+            if pieza and pieza.color != color:
+                movimientos = pieza.obtener_movimientos_validos(self)
+                if posicion_rey in movimientos:
+                    return True
+        return False
+        
+    def esta_en_jaque_mate(self, color: Color) -> bool:
+        """Determina si el color indicado está en jaque y no tiene movimientos que lo eviten."""
+        if not self.esta_en_jaque(color):
+            return False
+        for pos, pieza in self.casillas.items():
+            if pieza and pieza.color == color:
+                movimientos = pieza.obtener_movimientos_validos(self)
+                for mov in movimientos:
+                    pieza_destino = self.casillas.get(mov)
+                    self.casillas[mov] = pieza
+                    self.casillas[pos] = None
+                    posicion_anterior = pieza.posicion
+                    pieza.posicion = mov
+                    sigue_en_jaque = self.esta_en_jaque(color)
+                    self.casillas[pos] = pieza
+                    self.casillas[mov] = pieza_destino
+                    pieza.posicion = posicion_anterior
+                    if not sigue_en_jaque:
+                        return False
+        return True
         
     def inicializar_tablero(self):
-        # Inicializar peones
+        """Coloca piezas y peones en el tablero en su posición inicial estándar."""
         for i in range(8):
             self.casillas[(i, 1)] = Pieza(Color.BLANCO, TipoPieza.PEON)
             self.casillas[(i, 6)] = Pieza(Color.NEGRO, TipoPieza.PEON)
             
-        # Inicializar piezas principales
         piezas_blancas = [
             (0, 0, Color.BLANCO, TipoPieza.TORRE),
             (1, 0, Color.BLANCO, TipoPieza.CABALLO),
@@ -139,96 +118,19 @@ class Tablero:
             (4, 0, Color.BLANCO, TipoPieza.REY),
             (5, 0, Color.BLANCO, TipoPieza.ALFIL),
             (6, 0, Color.BLANCO, TipoPieza.CABALLO),
-            (7, 0, Color.BLANCO, TipoPieza.TORRE)
+            (7, 0, Color.BLANCO, TipoPieza.TORRE),
         ]
+        peones_blancos = [(i, 1, Color.BLANCO, TipoPieza.PEON) for i in range(8)]
+        piezas_blancas.extend(peones_blancos)
         
         piezas_negras = [
-            (i, 7, Color.NEGRO, tipo) for i, _, _, tipo in piezas_blancas
+            (i, 7, Color.NEGRO, tipo) for i, _, _, tipo in piezas_blancas[:8]
         ]
+        peones_negros = [(i, 6, Color.NEGRO, TipoPieza.PEON) for i in range(8)]
+        piezas_negras.extend(peones_negros)
         
         for x, y, color, tipo in piezas_blancas + piezas_negras:
             pieza = Pieza(color, tipo)
+            pieza.posicion = (x, y)
             pieza.imagen = self.gestor_recursos.obtener_imagen(color, tipo)
             self.casillas[(x, y)] = pieza
-
-class InterfazUsuario:
-    def __init__(self):
-        pygame.init()
-        self.ancho = 800
-        self.alto = 800
-        self.pantalla = pygame.display.set_mode((self.ancho, self.alto))
-        pygame.display.set_caption('Ajedrez')
-        self.gestor_recursos = GestorRecursos()
-        self.tablero = Tablero(self.gestor_recursos)
-        self.cuadrado_tamano = self.ancho // 8
-        self.colores = {
-            'claro': (240, 217, 181),
-            'oscuro': (180, 136, 99),
-            'seleccionado': (100, 249, 83),
-            'jaque': (255, 0, 0)
-        }
-         
-    def manejar_eventos(self) -> Tuple[bool, Optional[Tuple[int, int]]]:
-        try:
-            for evento in pygame.event.get():
-                if evento.type == pygame.QUIT:
-                    return False, None
-                elif evento.type == pygame.MOUSEBUTTONDOWN:
-                    x = evento.pos[0] // self.cuadrado_tamano
-                    y = evento.pos[1] // self.cuadrado_tamano
-                    return True, (x, y)
-            return True, None
-        except Exception as e:
-            print(f"Error en manejar_eventos: {e}")
-            return True, None
-        
-    def dibujar_tablero(self):
-        for i in range(8):
-            for j in range(8):
-                color = self.colores['claro'] if (i+j)%2 == 0 else self.colores['oscuro']
-                pygame.draw.rect(self.pantalla, color, 
-                               (i*self.cuadrado_tamano, j*self.cuadrado_tamano, 
-                                self.cuadrado_tamano, self.cuadrado_tamano))
-                
-                # Dibujar piezas
-                casilla = self.tablero.casillas.get((i, j))
-                if casilla and casilla.imagen:
-                    rect = casilla.imagen.get_rect()
-                    rect.center = (
-                        i * self.cuadrado_tamano + self.cuadrado_tamano // 2,
-                        j * self.cuadrado_tamano + self.cuadrado_tamano // 2
-                    )
-                    self.pantalla.blit(casilla.imagen, rect)
-
-def main():
-    try:
-        interfaz = InterfazUsuario()
-        ejecutando = True
-        seleccionado = None
-        
-        while ejecutando:
-            continuar, click = interfaz.manejar_eventos()
-            if not continuar:
-                break
-                
-            if click:
-                if seleccionado is None:
-                    seleccionado = click
-                else:
-                    if interfaz.tablero.realizar_movimiento(seleccionado, click):
-                        seleccionado = None
-                    else:
-                        seleccionado = click
-                        
-            interfaz.dibujar_tablero()
-            pygame.display.flip()
-            
-    except pygame.error as e:
-        print(f"Error de Pygame: {e}")
-    except Exception as e:
-        print(f"Error inesperado: {e}")
-    finally:
-        pygame.quit()
-
-if __name__ == "__main__":
-    main()
