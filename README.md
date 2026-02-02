@@ -2,6 +2,18 @@
 
 Proyecto modular para practicar POO con un juego de ajedrez en Pygame, con integración de reglas vía python-chess, soporte de sonido, motores UCI locales y **juego en red LAN**.
 
+## 📚 Wiki del Proyecto
+
+Para documentación completa y detallada, visita la **[Wiki del Proyecto](wiki/Home.md)**:
+
+- **[🏠 Inicio](wiki/Home.md)** - Visión general y navegación
+- **[📜 Historia](wiki/Historia.md)** - Evolución y desarrollo del proyecto
+- **[🛠️ Tecnologías](wiki/Tecnologia.md)** - Stack tecnológico completo
+- **[🎓 Prácticas](wiki/Practicas.md)** - Metodologías y POO aplicado
+- **[🏛️ Arquitectura](wiki/Arquitectura.md)** - Estructura y componentes
+- **[📖 Guía de Uso](wiki/Guia-de-Uso.md)** - Instalación y manual de juego
+- **[🚀 Desarrollo Futuro](wiki/Desarrollo-Futuro.md)** - Roadmap y características planificadas
+
 ## Estructura simple
 - [modelos.py](file:///e:/GIT/Ajedrez/modelos.py): Color, TipoPieza, EstadoJuego y GestorRecursos (imágenes y sonidos)
 - [pieza.py](file:///e:/GIT/Ajedrez/pieza.py): movimientos candidatos por tipo de pieza
