@@ -1,8 +1,9 @@
 # Dependencias del proyecto Ajedrez (Pygame y utilidades de red)
 
 # Librería principal para interfaz gráfica y sonido
-pygame>=2.5.0
-
+pygame-ce
+pygame
+pygame
 # Motor de ajedrez y validación de reglas
 python-chess>=1.999
 
