@@ -399,6 +399,38 @@ Referencias:
 
 ---
 
+## Práctica: Integrar recurso de Kaggle (Chess Benchmarks)
+
+Como ejercicio de integración y manejo robusto de recursos externos, incorpora el recurso “Chess Leaderboard” de Kaggle en tu proyecto. Este recurso puede no estar siempre disponible y ocasionalmente falla al cargarse en el navegador con mensajes como “TypeError: Failed to fetch”. Aprovecha esto para:
+- Practicar manejo de errores y timeouts al consumir recursos externos.
+- Implementar fallback local (por ejemplo, mostrar un mensaje en la UI o cargar datos simulados).
+- Separar claramente la capa de datos (fetch/parsing) de la UI.
+
+Ejemplo simple de manejo con `requests`:
+
+```python
+import requests
+
+def recurso_kaggle_chess_leaderboard() -> dict:
+    url = "https://www.kaggle.com/benchmarks/kaggle/chess/versions/1"
+    try:
+        r = requests.get(url, timeout=8)
+        r.raise_for_status()
+        return {"ok": True, "html": r.text[:1000]}
+    except requests.RequestException as e:
+        return {"ok": False, "error": str(e)}
+```
+
+Integración en tu menú:
+- Añade una opción “Recursos Kaggle”.
+- En el handler, llama `recurso_kaggle_chess_leaderboard()` y muestra el resultado:
+  - Si `ok` es True, indica que el recurso respondió (y opcionalmente guarda un snapshot).
+  - Si `ok` es False, muestra un mensaje de error amigable en la UI.
+
+Buenas prácticas de POO en este ejercicio:
+- Encapsular la función de obtención de recurso en un módulo `recursos.py`.
+- No mezclar lógica de red con renderizado: la UI sólo consume resultados ya preparados.
+- Registrar estados en tu modelo (p.ej., `estado_recurso`, `error_recurso`) para trazabilidad.
 ## Rutas de mejora
 
 - Guardado de partidas en PGN y carga desde PGN
@@ -417,4 +449,37 @@ Referencias:
 - Implementar conversión a FEN y aplicación de jugadas LAN
 - Agregar temporizadores y estado de fin de partida
 - Escribir tests básicos de reglas y utilidades
+
+---
+
+## Motores UCI locales y niveles de dificultad
+
+Para jugar contra una IA local sin depender de servicios externos, integra motores UCI:
+- Stockfish (rápido y fuerte, binarios disponibles para Windows)
+- Leela Chess Zero (LCZero, requiere red neuronal y GPU para rendir)
+- AlphaZero (conceptual; no hay binario UCI público, útil como inspiración)
+
+Instalación y rutas:
+- Descarga Stockfish y coloca el ejecutable accesible (por ejemplo, `stockfish.exe` en PATH o junto al proyecto).
+- Descarga LCZero (`lc0.exe`) y la red (`.pb.gz`) si quieres experimentar; su rendimiento depende de la GPU.
+
+Uso desde `reglas.py`:
+
+```python
+from reglas import sugerir_movimiento
+
+# casillas: Dict[(x,y), Pieza|None], turno: Color
+lan = sugerir_movimiento(casillas, turno, motor="stockfish", nivel="medio")
+# niveles: "facil" (~200 ms), "medio" (~500 ms), "dificil" (~2000 ms)
+# motor puede ser "stockfish" o "lc0"; también puedes pasar ruta_motor explícita
+```
+
+Recomendaciones:
+- Empieza con Stockfish por su facilidad y velocidad.
+- LCZero puede ser más lento y necesita configuración de backend; úsalo para análisis y aprendizaje.
+- AlphaZero no se integra directamente como UCI; considera su enfoque para ideas de entrenamiento y heurísticas.
+
+Siguientes pasos:
+- Añade una opción “Jugador vs IA (motor local)” en el menú y usa `sugerir_movimiento`.
+- Expone selector de nivel en la UI para ajustar el tiempo por jugada.
 

@@ -1,0 +1,5 @@
+# Dependencias del proyecto Ajedrez (Pygame y utilidades de red)
+pygame>=2.5.0
+requests>=2.31.0
+python-chess>=1.999
+chess-engine>=1.3.3
