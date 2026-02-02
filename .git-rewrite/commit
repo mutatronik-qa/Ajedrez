@@ -1,0 +1,25 @@
+tree 6a75b08b9f71ef7c350130f2f0c8cace8ab23c27
+parent f1d35b1d0df8eaecdaf5826df4bc7b79bdcb6c24
+author mutatronik-qa <139729891+mutatronik-qa@users.noreply.github.com> 1761461596 -0500
+committer GitHub <noreply@github.com> 1761461596 -0500
+gpgsig -----BEGIN PGP SIGNATURE-----
+ 
+ wsFcBAABCAAQBQJo/cVcCRC1aQ7uu5UhlAAAFfEQAG58IQrKAGwuf0hjdcJIFf1M
+ Qru+waSSyKXBK2saLxM68r+eAcpwShkxYWMNurDkaiZojm8lmWK/z2K2OyQMs7r0
+ x7tPwX+FhN4oiX1HGHBIWOfiKw1Al28eeKE+NIJLHGXO2D+WioZ8qjUB5WZwUfWT
+ GnO4OwH11Udezho1+dOZZsdawcYwaLsPjL0wQQ+WW0Al6lfLLA/JVPZcP8CiCui6
+ AFUfEdOrayA+MANFvd4TCJrwrqyy0u/7CxT+aL51ntYPyr18sA8Msghlj3q8W6i+
+ yvHzlDp6NJj1W7IcYrxBaUWc6NhK5Vld2bUIy8xCm0yBk2D+EB+UaD0CrR+ptd/g
+ KPtuuHVzBZv9sxQZs586ILtYZbKogxofyWvX1Qfqhpi1ZUIUhixIThSWjD/hH7Ie
+ IZqdRHMc8hdmRxXg11vVZwWwPkVXRqDk/sR/L2dPUKmkDYlekaHjIH1oRPVSHWR8
+ L3OR1f0aBrmcAj51lkV0UWihODeLmJmVXR9b816dWDu+sDuSGQ9gXgoL7Yg3DlHp
+ LtneVQ2AFivGjWgJ2NiawXpZu7AWq6N4M+qFokBEVoJILXlMnEk2L3ow+KdXb8uK
+ 5r7TZhsX1Gx/0GxL8OdS6Hzihgjglxfg3JJNNoqwuixuTjot5c6z4GSdmNaVf/4Q
+ vv6sCtHw9lmgALpMmwte
+ =snEw
+ -----END PGP SIGNATURE-----
+ 
+
+Add roadmap for implementing OOP in chess project
+
+Added a detailed roadmap for implementing Object-Oriented Programming in the chess project, including phases, objectives, deliverables, and resources.
