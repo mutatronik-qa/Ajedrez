@@ -1,7 +1,17 @@
-import pygames
+"""Modelo de pieza y generación de movimientos candidatos.
+
+Responsabilidades:
+- Mantener estado por pieza (color, tipo, posición, imagen)
+- Proveer movimientos por tipo, sin validar reglas globales (jaque, etc.)
+"""
+from __future__ import annotations
+import pygame
+from typing import List, Tuple
+from modelos import Color, TipoPieza
 
 class Pieza:
     def __init__(self, color: Color, tipo: TipoPieza):
+        """Crea una pieza con su color y tipo; posición e imagen se asignan desde el tablero."""
         self.color = color
         self.tipo = tipo
         self.posicion = None
@@ -9,26 +19,28 @@ class Pieza:
         self.imagen = None
         
     def obtener_movimientos_validos(self, tablero) -> List[Tuple[int, int]]:
-        if self.tipo == TipoPieza.PEON:
+        tipo_val = getattr(self.tipo, 'value', None)
+        if tipo_val == 'peon':
             return self._movimientos_peon(tablero)
-        elif self.tipo == TipoPieza.TORRE:
+        elif tipo_val == 'torre':
             return self._movimientos_torre(tablero)
-        elif self.tipo == TipoPieza.ALFIL:
+        elif tipo_val == 'alfil':
             return self._movimientos_alfil(tablero)
-        elif self.tipo == TipoPieza.CABALLO:
+        elif tipo_val == 'caballo':
             return self._movimientos_caballo(tablero)
-        elif self.tipo == TipoPieza.REINA:
+        elif tipo_val == 'reina':
             return self._movimientos_reina(tablero)
-        elif self.tipo == TipoPieza.REY:
+        elif tipo_val == 'rey':
             return self._movimientos_rey(tablero)
         return []
     
     def _movimientos_peon(self, tablero) -> List[Tuple[int, int]]:
+        """Genera movimientos del peón (avance y capturas diagonales)."""
         movimientos = []
         x, y = self.posicion
         
-        # Dirección de movimiento según el color
-        direccion = 1 if self.color == Color.BLANCO else -1
+        # Dirección de movimiento según el color (usa .value para evitar dependencias de enum)
+        direccion = 1 if getattr(self.color, 'value', None) == 'blanco' else -1
         
         # Movimiento hacia adelante (1 casilla)
         nueva_pos = (x, y + direccion)
@@ -51,6 +63,7 @@ class Pieza:
         return movimientos
     
     def _movimientos_torre(self, tablero) -> List[Tuple[int, int]]:
+        """Genera movimientos en líneas rectas hasta encontrar bloqueo o borde."""
         movimientos = []
         x, y = self.posicion
         
@@ -77,6 +90,7 @@ class Pieza:
         return movimientos
     
     def _movimientos_alfil(self, tablero) -> List[Tuple[int, int]]:
+        """Genera movimientos diagonales hasta encontrar bloqueo o borde."""
         movimientos = []
         x, y = self.posicion
         
@@ -103,6 +117,7 @@ class Pieza:
         return movimientos
     
     def _movimientos_caballo(self, tablero) -> List[Tuple[int, int]]:
+        """Genera saltos en L (caballo), ignorando ocupación intermedia."""
         movimientos = []
         x, y = self.posicion
         
@@ -130,10 +145,11 @@ class Pieza:
         return movimientos
     
     def _movimientos_reina(self, tablero) -> List[Tuple[int, int]]:
-        # La reina combina los movimientos de la torre y el alfil
+        """Combina movimientos de torre y alfil."""
         return self._movimientos_torre(tablero) + self._movimientos_alfil(tablero)
     
     def _movimientos_rey(self, tablero) -> List[Tuple[int, int]]:
+        """Genera movimientos a casillas adyacentes (sin enroque)."""
         movimientos = []
         x, y = self.posicion
         

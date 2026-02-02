@@ -17,11 +17,13 @@ Se sugiere una carpeta de paquete `ajedrez/` con archivos especializados:
 - `reglas.py`: validaciones de legalidad, jaque, mate, empate y reglas especiales
 - `ui.py`: renderizado y eventos Pygame
 - `main.py`: menú y orquestación de modos de juego
+- `lan.py`: comunicación en red para partidas LAN (servidor y cliente)
 - `api_chess.py`: llamadas a Chess-API (Stockfish online)
 - `api_chess_com.py`: llamadas a Chess.com PubAPI (datos públicos)
 
 En tu repo ya existen variantes como:
 - [main.py](file:///e:/GIT/Ajedrez/main.py)
+- [lan.py](file:///e:/GIT/Ajedrez/lan.py)
 - [ajedrez/main.py](file:///e:/GIT/Ajedrez/ajedrez/main.py)
 - [ajedrez/pieza.py](file:///e:/GIT/Ajedrez/ajedrez/pieza.py)
 - [ajedrez/tablero.py](file:///e:/GIT/Ajedrez/ajedrez/tablero.py)
@@ -399,12 +401,203 @@ Referencias:
 
 ---
 
+## Práctica: Integrar recurso de Kaggle (Chess Benchmarks)
+
+Como ejercicio de integración y manejo robusto de recursos externos, incorpora el recurso “Chess Leaderboard” de Kaggle en tu proyecto. Este recurso puede no estar siempre disponible y ocasionalmente falla al cargarse en el navegador con mensajes como “TypeError: Failed to fetch”. Aprovecha esto para:
+- Practicar manejo de errores y timeouts al consumir recursos externos.
+- Implementar fallback local (por ejemplo, mostrar un mensaje en la UI o cargar datos simulados).
+- Separar claramente la capa de datos (fetch/parsing) de la UI.
+
+Ejemplo simple de manejo con `requests`:
+
+```python
+import requests
+
+def recurso_kaggle_chess_leaderboard() -> dict:
+    url = "https://www.kaggle.com/benchmarks/kaggle/chess/versions/1"
+    try:
+        r = requests.get(url, timeout=8)
+        r.raise_for_status()
+        return {"ok": True, "html": r.text[:1000]}
+    except requests.RequestException as e:
+        return {"ok": False, "error": str(e)}
+```
+
+Integración en tu menú:
+- Añade una opción “Recursos Kaggle”.
+- En el handler, llama `recurso_kaggle_chess_leaderboard()` y muestra el resultado:
+  - Si `ok` es True, indica que el recurso respondió (y opcionalmente guarda un snapshot).
+  - Si `ok` es False, muestra un mensaje de error amigable en la UI.
+
+Buenas prácticas de POO en este ejercicio:
+- Encapsular la función de obtención de recurso en un módulo `recursos.py`.
+- No mezclar lógica de red con renderizado: la UI sólo consume resultados ya preparados.
+- Registrar estados en tu modelo (p.ej., `estado_recurso`, `error_recurso`) para trazabilidad.
 ## Rutas de mejora
 
 - Guardado de partidas en PGN y carga desde PGN
 - Anotación SAN y resaltado de últimas jugadas
 - Modo análisis con flechas y evaluación de Chess-API
 - Integración de perfiles y archivos de Chess.com en una vista informativa
+
+---
+
+## Etapa 6: Juego en red LAN
+
+Para permitir partidas entre dos equipos en la misma red local, implementa comunicación cliente-servidor usando sockets.
+
+### Arquitectura del sistema LAN
+
+**Servidor (lan.py - ServidorAjedrez)**
+- Escucha conexiones en un puerto específico (por defecto 8080)
+- Juega con las piezas blancas
+- Envía y recibe movimientos del cliente conectado
+
+**Cliente (lan.py - ClienteAjedrez)**
+- Se conecta al servidor usando su dirección IP
+- Juega con las piezas negras
+- Sincroniza movimientos con el servidor
+
+### Protocolo de comunicación
+
+Los movimientos se envían como mensajes JSON separados por saltos de línea (`\n`):
+
+```json
+{
+  "tipo": "movimiento",
+  "origen": [x, y],
+  "destino": [x, y]
+}
+```
+
+### Implementación básica
+
+**Crear servidor:**
+
+```python
+from lan import ServidorAjedrez
+
+# Crear e iniciar servidor
+servidor = ServidorAjedrez(puerto=8080)
+servidor.iniciar()
+
+# Esperar conexión (con timeout de 60 segundos)
+if servidor.esperar_conexion(timeout=60.0):
+    print("Cliente conectado")
+    
+    # Establecer callback para recibir movimientos
+    def recibir_movimiento(origen, destino):
+        print(f"Movimiento recibido: {origen} -> {destino}")
+        # Aplicar movimiento al tablero
+        tablero.realizar_movimiento(origen, destino)
+    
+    servidor.establecer_callback_movimiento(recibir_movimiento)
+    
+    # Enviar un movimiento al cliente
+    servidor.enviar_movimiento((4, 6), (4, 4))  # e2 -> e4
+```
+
+**Conectar como cliente:**
+
+```python
+from lan import ClienteAjedrez
+
+# Crear y conectar cliente
+cliente = ClienteAjedrez()
+if cliente.conectar(host="192.168.1.100", puerto=8080, timeout=10.0):
+    print("Conectado al servidor")
+    
+    # Establecer callback para recibir movimientos
+    def recibir_movimiento(origen, destino):
+        print(f"Movimiento recibido: {origen} -> {destino}")
+        tablero.realizar_movimiento(origen, destino)
+    
+    cliente.establecer_callback_movimiento(recibir_movimiento)
+    
+    # Enviar un movimiento al servidor
+    cliente.enviar_movimiento((4, 1), (4, 3))  # e7 -> e5
+```
+
+### Integración con main.py
+
+El menú principal incluye dos opciones nuevas:
+- "Partida LAN - Crear Servidor": Inicia un servidor y espera conexión
+- "Partida LAN - Unirse a Servidor": Solicita IP y se conecta al servidor
+
+```python
+def juego_lan_servidor():
+    """Ejecuta una partida LAN actuando como servidor (juega con blancas)."""
+    servidor = ServidorAjedrez(puerto=8080)
+    servidor.iniciar()
+    
+    # Mostrar mensaje de espera en pantalla
+    interfaz.mensaje_estado = "Esperando conexión del cliente..."
+    interfaz.dibujar_tablero()
+    pygame.display.flip()
+    
+    if servidor.esperar_conexion(timeout=60.0):
+        # Configurar callback y comenzar partida
+        servidor.establecer_callback_movimiento(lambda o, d: aplicar_movimiento_red(o, d))
+        # ... bucle de juego
+```
+
+### Consideraciones importantes
+
+**Control de turnos:**
+- El servidor solo puede mover cuando `turno == Color.BLANCO`
+- El cliente solo puede mover cuando `turno == Color.NEGRO`
+- Los movimientos del oponente se reciben por callbacks y se aplican automáticamente
+
+**Sincronización:**
+- Los movimientos se envían inmediatamente después de validarse localmente
+- El hilo de escucha recibe movimientos en segundo plano
+- Los callbacks se invocan desde el hilo de red, no desde el hilo principal
+
+**Desconexión:**
+- Ambos lados detectan desconexión cuando `recv()` devuelve cadena vacía
+- Al cerrar la ventana, se llama a `servidor.cerrar()` o `cliente.cerrar()`
+- Los hilos de escucha finalizan automáticamente
+
+**Configuración de firewall:**
+- El servidor debe permitir conexiones entrantes en el puerto 8080
+- En Windows: Panel de Control > Sistema y Seguridad > Firewall de Windows
+- Crear regla de entrada para permitir puerto TCP 8080
+
+**Obtener dirección IP (Windows):**
+```cmd
+ipconfig
+```
+Buscar "Dirección IPv4" en la interfaz de red activa (ej: 192.168.1.100)
+
+### Ejemplo de uso completo
+
+**Equipo 1 (Servidor):**
+1. Ejecutar `python main.py`
+2. Seleccionar "Partida LAN - Crear Servidor"
+3. Obtener IP local con `ipconfig`
+4. Comunicar IP al otro jugador
+5. Esperar conexión (pantalla muestra "Esperando conexión...")
+6. Jugar con blancas
+
+**Equipo 2 (Cliente):**
+1. Ejecutar `python main.py`
+2. Seleccionar "Partida LAN - Unirse a Servidor"
+3. Introducir IP del servidor (ej: 192.168.1.100)
+4. Esperar confirmación de conexión
+5. Jugar con negras
+
+### Mejoras futuras
+
+- Chat integrado entre jugadores
+- Reconexión automática en caso de fallo temporal
+- Sincronización de temporizadores
+- Indicador visual de latencia/ping
+- Soporte para múltiples partidas simultáneas
+- Modo espectador
+
+Referencia:
+- [lan.py: ServidorAjedrez y ClienteAjedrez](file:///e:/GIT/Ajedrez/lan.py)
+- [main.py: juego_lan_servidor y juego_lan_cliente](file:///e:/GIT/Ajedrez/main.py)
 
 ---
 
@@ -417,4 +610,37 @@ Referencias:
 - Implementar conversión a FEN y aplicación de jugadas LAN
 - Agregar temporizadores y estado de fin de partida
 - Escribir tests básicos de reglas y utilidades
+
+---
+
+## Motores UCI locales y niveles de dificultad
+
+Para jugar contra una IA local sin depender de servicios externos, integra motores UCI:
+- Stockfish (rápido y fuerte, binarios disponibles para Windows)
+- Leela Chess Zero (LCZero, requiere red neuronal y GPU para rendir)
+- AlphaZero (conceptual; no hay binario UCI público, útil como inspiración)
+
+Instalación y rutas:
+- Descarga Stockfish y coloca el ejecutable accesible (por ejemplo, `stockfish.exe` en PATH o junto al proyecto).
+- Descarga LCZero (`lc0.exe`) y la red (`.pb.gz`) si quieres experimentar; su rendimiento depende de la GPU.
+
+Uso desde `reglas.py`:
+
+```python
+from reglas import sugerir_movimiento
+
+# casillas: Dict[(x,y), Pieza|None], turno: Color
+lan = sugerir_movimiento(casillas, turno, motor="stockfish", nivel="medio")
+# niveles: "facil" (~200 ms), "medio" (~500 ms), "dificil" (~2000 ms)
+# motor puede ser "stockfish" o "lc0"; también puedes pasar ruta_motor explícita
+```
+
+Recomendaciones:
+- Empieza con Stockfish por su facilidad y velocidad.
+- LCZero puede ser más lento y necesita configuración de backend; úsalo para análisis y aprendizaje.
+- AlphaZero no se integra directamente como UCI; considera su enfoque para ideas de entrenamiento y heurísticas.
+
+Siguientes pasos:
+- Añade una opción “Jugador vs IA (motor local)” en el menú y usa `sugerir_movimiento`.
+- Expone selector de nivel en la UI para ajustar el tiempo por jugada.
 
