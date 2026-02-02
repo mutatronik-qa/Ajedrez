@@ -640,6 +640,11 @@ Recomendaciones:
 - LCZero puede ser más lento y necesita configuración de backend; úsalo para análisis y aprendizaje.
 - AlphaZero no se integra directamente como UCI; considera su enfoque para ideas de entrenamiento y heurísticas.
 
+Notas de compatibilidad multiplataforma:
+- Windows: usa un binario `stockfish-*.exe`.
+- Linux/macOS: usa un binario `stockfish` con permisos `chmod +x`.
+- El proyecto detecta el motor automáticamente en PATH o dentro de la carpeta `stockfish/`.
+
 Siguientes pasos:
 - Añade una opción “Jugador vs IA (motor local)” en el menú y usa `sugerir_movimiento`.
 - Expone selector de nivel en la UI para ajustar el tiempo por jugada.

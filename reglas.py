@@ -6,6 +6,8 @@ Responsabilidades:
 - Wrapper de motores UCI (Stockfish, LCZero) para obtener mejores jugadas
 """
 from typing import Optional, Tuple, Dict
+import os
+import sys
 import subprocess
 
 try:
@@ -16,7 +18,7 @@ except Exception:
     chess_engine = None
 
 from modelos import Color, TipoPieza
-from pieza import Pieza
+from ajedrez_clasico import Pieza
 
 def tablero_a_fen(casillas: Dict[Tuple[int, int], Optional[Pieza]], turno: Color) -> str:
     """Convierte el diccionario de casillas a FEN estándar.
@@ -63,7 +65,8 @@ def aplicar_movimiento_lan(casillas: Dict[Tuple[int, int], Optional[Pieza]], lan
     def sq_to_xy(file_char: str, rank_char: str) -> Tuple[int, int]:
         x = ord(file_char) - ord('a')
         r = int(rank_char)
-        y = 8 - r
+        # El tablero interno usa y=0 arriba; rank 1 corresponde a y=0.
+        y = r - 1
         return x, y
     origen = sq_to_xy(a, r1)
     destino = sq_to_xy(b, r2)
@@ -144,18 +147,84 @@ class Reglas:
         res = self.board.is_checkmate()
         self.board.turn = original
         return res
-def sugerir_movimiento(casillas: Dict[Tuple[int, int], Optional[Pieza]], turno: Color, motor: str = "stockfish", nivel: str = "medio", ruta_motor: Optional[str] = None) -> Optional[str]:
+def _ruta_motor_por_defecto(nombre_motor: str) -> Optional[str]:
+    """Resuelve una ruta probable del motor UCI según el SO.
+
+    - Busca en el directorio del proyecto (./bin o junto al proyecto).
+    - Busca en PATH usando `shutil.which`.
+    - Busca variantes del binario en la carpeta ./stockfish/.
+    """
+    import shutil
+
+    nombre_motor = nombre_motor.lower().strip()
+    if nombre_motor in ("stockfish", "sf"):
+        base = "stockfish"
+    elif nombre_motor in ("lc0", "leela", "leelachesszero"):
+        base = "lc0"
+    else:
+        return None
+
+    exe = base + (".exe" if sys.platform.startswith("win") else "")
+
+    # 1) Buscar en PATH
+    ruta = shutil.which(exe)
+    if ruta:
+        return ruta
+
+    # 2) Buscar en ./bin (relativo al proyecto)
+    raiz = os.path.dirname(os.path.abspath(__file__))
+    candidatos = [
+        os.path.join(raiz, exe),
+        os.path.join(raiz, "bin", exe),
+        os.path.join(raiz, "engines", exe),
+        os.path.join(raiz, "stockfish", exe),
+    ]
+    for c in candidatos:
+        if os.path.isfile(c):
+            return c
+
+    # 3) Buscar variantes del binario dentro de /stockfish
+    carpeta_stockfish = os.path.join(raiz, "stockfish")
+    if os.path.isdir(carpeta_stockfish):
+        try:
+            for nombre in os.listdir(carpeta_stockfish):
+                if not nombre.lower().startswith(base):
+                    continue
+                if sys.platform.startswith("win") and not nombre.lower().endswith(".exe"):
+                    continue
+                ruta_candidata = os.path.join(carpeta_stockfish, nombre)
+                if os.path.isfile(ruta_candidata):
+                    return ruta_candidata
+        except Exception:
+            pass
+    return None
+
+
+def sugerir_movimiento(
+    casillas: Dict[Tuple[int, int], Optional[Pieza]],
+    turno: Color,
+    motor: str = "stockfish",
+    nivel: str = "medio",
+    ruta_motor: Optional[str] = None
+) -> Optional[str]:
+    """Devuelve la mejor jugada LAN usando un motor UCI local.
+
+    - Si no se pasa `ruta_motor`, intenta resolver el binario automáticamente.
+    """
     niveles = {"facil": 200, "medio": 500, "dificil": 2000}
     tiempo_ms = niveles.get(nivel, 500)
+
     if ruta_motor is None:
-        if motor.lower() in ("stockfish", "sf"):
-            ruta_motor = "stockfish.exe"
-        elif motor.lower() in ("lc0", "leela", "leelachesszero"):
-            ruta_motor = "lc0.exe"
-        else:
-            return None
+        ruta_motor = _ruta_motor_por_defecto(motor)
+    if not ruta_motor:
+        print("No se encontró el binario del motor UCI.")
+        return None
+
     fen = tablero_a_fen(casillas, turno)
     m = MotorUCI(ruta_motor, tiempo_ms=tiempo_ms)
+    if not m.disponible():
+        print("El motor UCI no está disponible. Verifica la ruta y permisos del binario.")
+        return None
     jugada = m.mejor_jugada(fen)
     m.cerrar()
     return jugada
