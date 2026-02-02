@@ -3,12 +3,12 @@
 Orquesta el flujo inicial:
 - Muestra el menú principal
 - Inicia la partida local (Jugador vs Jugador)
-- Inicia partidas en red LAN (Servidor o Cliente)
+- Inicia partidas en red LAN (Servidor o Cliente) con descubrimiento automático
 - Controla el bucle principal de juego delegando UI y lógica al módulo ui
 """
 import pygame
 from ui import Menu, InterfazUsuario
-from lan import ServidorAjedrez, ClienteAjedrez
+from lan import ServidorAjedrez, ClienteAjedrez, DescubridorServidores, PUERTO_JUEGO
 from modelos import Color
 
 def main():
@@ -90,7 +90,7 @@ def juego_local():
 def juego_lan_servidor():
     """Ejecuta una partida LAN actuando como servidor (juega con blancas)."""
     # Crear el servidor
-    servidor = ServidorAjedrez(puerto=8080)
+    servidor = ServidorAjedrez(puerto=PUERTO_JUEGO)
     if not servidor.iniciar():
         print("Error al iniciar el servidor")
         return
@@ -172,16 +172,49 @@ def juego_lan_servidor():
 
 def juego_lan_cliente():
     """Ejecuta una partida LAN conectándose a un servidor (juega con negras)."""
-    # Solicitar IP del servidor mediante input de consola
-    print("\n=== CONECTAR A SERVIDOR ===")
-    host = input("Introduce la IP del servidor (o 'localhost' para local): ").strip()
-    if not host:
-        host = "localhost"
+    print("\n=== BUSCAR SERVIDORES EN LA LAN ===")
+    
+    # Buscar servidores automáticamente
+    descubridor = DescubridorServidores(timeout_busqueda=3.0)
+    servidores = descubridor.buscar_servidores()
+    
+    # Si no hay servidores, permitir ingreso manual
+    if not servidores:
+        print("\nNo se encontraron servidores automáticamente.")
+        print("Ingresa la IP del servidor manualmente (o 'localhost' para local)")
+        host = input("IP del servidor: ").strip()
+        if not host:
+            host = "localhost"
+    else:
+        # Mostrar servidores encontrados
+        print(f"\nServidores encontrados: {len(servidores)}")
+        ips = list(servidores.keys())
+        
+        for i, ip in enumerate(ips, 1):
+            print(f"{i}. {ip}:{servidores[ip]['puerto']}")
+        
+        # Si hay solo uno, usar ese
+        if len(ips) == 1:
+            host = ips[0]
+            print(f"\nConectando automáticamente a {host}...")
+        else:
+            # Permitir selección
+            try:
+                seleccion = input(f"Selecciona un servidor (1-{len(ips)}): ").strip()
+                indice = int(seleccion) - 1
+                if 0 <= indice < len(ips):
+                    host = ips[indice]
+                else:
+                    print("Opción inválida")
+                    return
+            except (ValueError, IndexError):
+                print("Opción inválida")
+                return
     
     # Crear el cliente y conectar
     cliente = ClienteAjedrez()
-    print(f"Conectando a {host}:8080...")
-    if not cliente.conectar(host, puerto=8080, timeout=10.0):
+    print(f"Conectando a {host}:{PUERTO_JUEGO}...")
+    if not cliente.conectar(host, puerto=PUERTO_JUEGO, timeout=10.0):
         print("No se pudo conectar al servidor")
         return
     

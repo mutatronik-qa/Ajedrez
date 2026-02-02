@@ -1,15 +1,22 @@
-"""Módulo de red para juego en LAN.
+"""Módulo de red para juego en red.
 
 Responsabilidades:
 - ServidorAjedrez: escucha conexiones y maneja comunicación como anfitrión
 - ClienteAjedrez: conecta al servidor remoto y sincroniza movimientos
+- Descubrimiento automático: broadcast UDP para encontrar servidores en la LAN
 - Protocolo de mensajes simple basado en JSON para enviar movimientos
 """
 import socket
 import json
 import threading
-from typing import Optional, Tuple, Callable
+import time
+from typing import Optional, Tuple, Callable, List, Dict
 from modelos import Color
+
+# Constantes para descubrimiento automático
+PUERTO_BROADCAST = 8888  # Puerto UDP para anuncios de servidor
+PUERTO_JUEGO = 8880      # Puerto TCP para juego
+MENSAJE_ANUNCIO = "AJEDREZ_SERVER"
 
 class ServidorAjedrez:
     """Servidor que escucha conexiones para partidas LAN.
@@ -18,11 +25,11 @@ class ServidorAjedrez:
     movimientos al cliente conectado.
     """
     
-    def __init__(self, puerto: int = 8080):
+    def __init__(self, puerto: int = PUERTO_JUEGO):
         """Inicializa el servidor en el puerto especificado.
         
         Args:
-            puerto: Puerto en el que escuchará el servidor (por defecto 8080)
+            puerto: Puerto en el que escuchará el servidor (por defecto 8880)
         """
         self.puerto = puerto
         self.socket_servidor: Optional[socket.socket] = None
@@ -32,6 +39,7 @@ class ServidorAjedrez:
         self.hilo_escucha: Optional[threading.Thread] = None
         self.callback_movimiento: Optional[Callable] = None
         self._ejecutando = False
+        self.anunciador: Optional[AnunciadorServidor] = None
         
     def iniciar(self) -> bool:
         """Inicia el servidor y comienza a escuchar conexiones.
@@ -46,7 +54,14 @@ class ServidorAjedrez:
             self.socket_servidor.bind(('0.0.0.0', self.puerto))
             self.socket_servidor.listen(1)
             self.socket_servidor.settimeout(1.0)  # Timeout para poder cerrar limpiamente
-            print(f"Servidor iniciado en puerto {self.puerto}, esperando conexión...")
+            
+            # Obtener IP local y iniciar anunciador
+            ip_local = obtener_ip_local()
+            self.anunciador = AnunciadorServidor(ip_local, self.puerto)
+            self.anunciador.iniciar_anuncios()
+            
+            print(f"Servidor iniciado en {ip_local}:{self.puerto}")
+            print(f"Anunciando disponibilidad en la LAN...")
             return True
         except Exception as e:
             print(f"Error al iniciar servidor: {e}")
@@ -163,6 +178,11 @@ class ServidorAjedrez:
         self._ejecutando = False
         self.conectado = False
         
+        # Detener anuncios
+        if self.anunciador:
+            self.anunciador.detener_anuncios()
+            self.anunciador = None
+        
         if self.socket_cliente:
             try:
                 self.socket_cliente.close()
@@ -198,12 +218,12 @@ class ClienteAjedrez:
         self.callback_movimiento: Optional[Callable] = None
         self._ejecutando = False
     
-    def conectar(self, host: str, puerto: int = 8080, timeout: float = 5.0) -> bool:
+    def conectar(self, host: str, puerto: int = 8880, timeout: float = 5.0) -> bool:
         """Conecta al servidor especificado.
         
         Args:
             host: Dirección IP o nombre del host del servidor
-            puerto: Puerto del servidor (por defecto 8080)
+            puerto: Puerto del servidor (por defecto 8880)
             timeout: Tiempo máximo de espera para la conexión
             
         Returns:
@@ -314,3 +334,141 @@ class ClienteAjedrez:
             self.hilo_escucha.join(timeout=2.0)
         
         print("Cliente desconectado")
+
+
+class DescubridorServidores:
+    """Descubre automáticamente servidores de ajedrez en la LAN mediante broadcast UDP."""
+    
+    def __init__(self, timeout_busqueda: float = 3.0):
+        """Inicializa el descubridor.
+        
+        Args:
+            timeout_busqueda: Tiempo máximo en segundos para buscar servidores
+        """
+        self.timeout_busqueda = timeout_busqueda
+        self.servidores_encontrados: Dict[str, Dict] = {}  # {ip: {"nombre": str, "puerto": int}}
+    
+    def buscar_servidores(self) -> Dict[str, Dict]:
+        """Busca servidores de ajedrez en la LAN.
+        
+        Returns:
+            Diccionario con los servidores encontrados {ip: {"puerto": int, "timestamp": float}}
+        """
+        self.servidores_encontrados = {}
+        
+        # Crear socket UDP para escuchar anuncios
+        socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        socket_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        
+        try:
+            # Permitir recibir broadcast
+            socket_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            
+            # Vincular al puerto de broadcast
+            socket_udp.bind(('', PUERTO_BROADCAST))
+            socket_udp.settimeout(self.timeout_busqueda)
+            
+            print(f"Buscando servidores en la LAN por {self.timeout_busqueda} segundos...")
+            inicio = time.time()
+            
+            # Recopilar anuncios durante el timeout
+            while time.time() - inicio < self.timeout_busqueda:
+                try:
+                    datos, (ip, puerto) = socket_udp.recvfrom(1024)
+                    mensaje = datos.decode('utf-8', errors='ignore')
+                    
+                    # Verificar si es un anuncio válido
+                    if MENSAJE_ANUNCIO in mensaje:
+                        try:
+                            info = json.loads(mensaje)
+                            if info.get('tipo') == 'anuncio_servidor':
+                                ip_servidor = info.get('ip')
+                                puerto_juego = info.get('puerto')
+                                if ip_servidor and puerto_juego:
+                                    # Registrar el servidor encontrado
+                                    self.servidores_encontrados[ip_servidor] = {
+                                        'puerto': puerto_juego,
+                                        'timestamp': time.time()
+                                    }
+                                    print(f"  ✓ Servidor encontrado: {ip_servidor}:{puerto_juego}")
+                        except json.JSONDecodeError:
+                            pass
+                except socket.timeout:
+                    break
+        finally:
+            socket_udp.close()
+        
+        return self.servidores_encontrados
+
+
+class AnunciadorServidor:
+    """Anuncia la presencia del servidor en la LAN mediante broadcast UDP."""
+    
+    def __init__(self, ip_local: str, puerto_juego: int = PUERTO_JUEGO):
+        """Inicializa el anunciador.
+        
+        Args:
+            ip_local: IP local del servidor
+            puerto_juego: Puerto en el que escucha el servidor
+        """
+        self.ip_local = ip_local
+        self.puerto_juego = puerto_juego
+        self.hilo_anuncio: Optional[threading.Thread] = None
+        self._ejecutando = False
+    
+    def iniciar_anuncios(self):
+        """Inicia el hilo que anuncia el servidor cada segundo."""
+        if self._ejecutando:
+            return
+        
+        self._ejecutando = True
+        self.hilo_anuncio = threading.Thread(target=self._anunciar_periodicamente, daemon=True)
+        self.hilo_anuncio.start()
+    
+    def _anunciar_periodicamente(self):
+        """Hilo que envía anuncios de disponibilidad cada segundo."""
+        socket_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        socket_udp.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        socket_udp.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        
+        try:
+            while self._ejecutando:
+                mensaje = json.dumps({
+                    'tipo': 'anuncio_servidor',
+                    'mensaje': MENSAJE_ANUNCIO,
+                    'ip': self.ip_local,
+                    'puerto': self.puerto_juego
+                })
+                
+                try:
+                    # Enviar broadcast en la red local
+                    socket_udp.sendto(mensaje.encode('utf-8'), ('<broadcast>', PUERTO_BROADCAST))
+                except Exception as e:
+                    print(f"Error al enviar anuncio: {e}")
+                
+                time.sleep(1.0)  # Anunciar cada segundo
+        finally:
+            socket_udp.close()
+    
+    def detener_anuncios(self):
+        """Detiene los anuncios."""
+        self._ejecutando = False
+        if self.hilo_anuncio:
+            self.hilo_anuncio.join(timeout=2.0)
+
+
+def obtener_ip_local() -> str:
+    """Obtiene la dirección IP local del equipo.
+    
+    Returns:
+        La dirección IP local (ej: "192.168.1.100")
+    """
+    try:
+        # Conectar a un servidor DNS público (no se realiza conexión real)
+        socket_temp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        socket_temp.connect(("8.8.8.8", 80))
+        ip_local = socket_temp.getsockname()[0]
+        socket_temp.close()
+        return ip_local
+    except Exception:
+        return "localhost"
