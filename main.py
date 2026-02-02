@@ -7,6 +7,8 @@ Orquesta el flujo inicial:
 - Controla el bucle principal de juego delegando UI y lógica al módulo ui
 """
 import pygame
+import socket
+import threading
 from ui import Menu, InterfazUsuario
 from lan import ServidorAjedrez, ClienteAjedrez, DescubridorServidores, PUERTO_JUEGO
 from modelos import Color
@@ -97,15 +99,63 @@ def juego_lan_servidor():
     
     # Crear interfaz mostrando que esperamos conexión
     interfaz = InterfazUsuario()
-    interfaz.mensaje_estado = "Esperando conexión del cliente..."
-    interfaz.dibujar_tablero()
-    pygame.display.flip()
+    clock = pygame.time.Clock()
     
-    # Esperar conexión con timeout de 60 segundos
+    # Esperar conexión con bucle que actualiza pantalla
     print("Esperando cliente (60 segundos)...")
-    if not servidor.esperar_conexion(timeout=60.0):
-        print("No se conectó ningún cliente")
-        servidor.cerrar()
+    tiempo_inicio = pygame.time.get_ticks() / 1000.0
+    timeout_conexion = 60.0
+    
+    while not servidor.conectado:
+        dt = clock.tick(60) / 1000.0
+        tiempo_elapsed = (pygame.time.get_ticks() / 1000.0) - tiempo_inicio
+        
+        # Verificar timeout
+        if tiempo_elapsed > timeout_conexion:
+            print("No se conectó ningún cliente")
+            servidor.cerrar()
+            return
+        
+        # Manejar eventos de Pygame (permitir cerrar ventana)
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                servidor.cerrar()
+                return
+        
+        # Intentar aceptar conexión (no bloqueante)
+        if servidor.socket_servidor:
+            try:
+                servidor.socket_servidor.settimeout(0.1)
+                cliente_socket, cliente_addr = servidor.socket_servidor.accept()
+                servidor.socket_cliente = cliente_socket
+                servidor.direccion_cliente = cliente_addr
+                servidor.socket_cliente.settimeout(0.1)
+                servidor.conectado = True
+                servidor._ejecutando = True
+                
+                # Iniciar hilo de escucha
+                servidor.hilo_escucha = threading.Thread(
+                    target=servidor._escuchar_movimientos, 
+                    daemon=True
+                )
+                servidor.hilo_escucha.start()
+                
+                print(f"Cliente conectado desde {cliente_addr}")
+                break
+            except socket.timeout:
+                pass
+            except Exception:
+                pass
+        
+        # Actualizar mensaje con tiempo restante
+        tiempo_restante = int(timeout_conexion - tiempo_elapsed)
+        interfaz.mensaje_estado = f"Esperando cliente... ({tiempo_restante}s)"
+        
+        # Redibujar
+        interfaz.dibujar_tablero()
+        pygame.display.flip()
+    
+    if not servidor.conectado:
         return
     
     # Variable para almacenar movimientos del oponente
@@ -125,6 +175,7 @@ def juego_lan_servidor():
     while True:
         dt = clock.tick(60) / 1000.0
         interfaz.actualizar_tiempos(dt)
+        interfaz.mensaje_estado = None  # Limpiar mensaje de espera
         
         # Verificar si hay movimiento del oponente
         if movimiento_pendiente['origen'] is not None:
