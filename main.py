@@ -13,6 +13,7 @@ def main():
         # Mostrar menú de inicio para seleccionar el modo de juego
         menu = Menu([
             "Jugador vs Jugador",
+            "Jugador vs Maquina (Próximamente)",
             "Salir"
         ])
         opcion = menu.loop()
