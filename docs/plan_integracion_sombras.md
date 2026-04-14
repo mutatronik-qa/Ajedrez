@@ -1,6 +1,10 @@
-# Plan de Integración - Modo Sombras en Ajedrez
+# Plan de Integración - Modo Sombras en Ajedrez (CANCELADO)
 
-## 📋 Visión General
+## ❌ ESTADO: CANCELADO
+
+El modo Sombras ha sido **eliminado** del proyecto para simplificar la arquitectura. El proyecto ahora se enfoca únicamente en el ajedrez clásico con integración de APIs externas.
+
+## 📋 Visión Original (Histórica)
 
 Integrar la variante **ChessSoul (Sombras)** como **nuevo modo de juego** en el proyecto Ajedrez principal, con soporte para:
 1. **Jugador Local vs IA (Sombras)**

@@ -3,8 +3,9 @@
 ## 📋 Resumen Ejecutivo
 
 Este documento describe la arquitectura final de **Ajedrez v2.0**, un proyecto Pygame modular que implementa:
-1. **Ajedrez Clásico**: Juego tradicional con 4 modos (Local, LAN 2/Cliente, vs IA Stockfish)
-2. **Ajedrez Sombras**: Variante RPG con niebla de guerra, sistema de HP/Daño y Boss IA
+1. **Ajedrez Clásico**: Juego tradicional con 4 modos (Local, LAN Servidor/Cliente, vs IA Stockfish/Chess-API.com)
+
+**Nota**: El modo "Ajedrez Sombras" fue **eliminado** en la simplificación del proyecto para enfocarse en el ajedrez clásico con integración de APIs.
 
 Estado actual: ✅ **Completamente funcional**
 
@@ -264,7 +265,7 @@ class PiezaSombra(pygame.sprite.Sprite):
         return False
 ```
 
-**7 Clases de Piezas:**
+**7 Clases de Piezas (INFORMACIÓN HISTÓRICA - Modo Sombras eliminado):**
 
 | Clase | Nombre | HP | DMG | Movimiento |
 |---|---|---|---|---|
@@ -277,6 +278,9 @@ class PiezaSombra(pygame.sprite.Sprite):
 | PiezaSombraRey (es_boss=True) | **Rey Caído** | **300** | **50** | 1 paso, invoca |
 
 ---
+
+**⚠️ SECCIONES 2-5: INFORMACIÓN HISTÓRICA**  
+*Las siguientes secciones describen el modo Sombras que fue eliminado del proyecto. Se mantienen por referencia histórica.*
 
 ### 2. Tablero con Niebla de Guerra (ajedrez_sombras/tablero_sombras.py)
 
