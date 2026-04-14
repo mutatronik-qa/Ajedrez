@@ -181,36 +181,40 @@ Pregunta al jugador que creó el servidor por su dirección IP (ejemplo: 192.168
 - No funciona a través de Internet sin configuración adicional
 - La conexión es directa entre las dos computadoras
 
-### 4️⃣ Jugador vs Máquina (Próximamente)
+### 4️⃣ Jugador vs Máquina
 
-**Estado**: Funcionalidad en desarrollo.
+**Descripción**: Juega contra la computadora con diferentes motores de IA.
 
-**Funcionalidad planificada:**
-- Jugar contra motores UCI (Stockfish o LCZero)
-- Selección de nivel de dificultad:
-  - Fácil: Motor analiza ~200ms
-  - Medio: Motor analiza ~500ms
-  - Difícil: Motor analiza ~2000ms
+**Motores disponibles:**
+- **Stockfish (Local)**: Motor UCI clásico, requiere descarga
+- **Chess-API.com (Remoto)**: Análisis en la nube, gratuito
 
-**Preparación actual:**
+**Cómo jugar:**
 
-Si quieres probar sugerencias del motor manualmente:
-
-1. Descarga Stockfish: https://stockfishchess.org/download/
+#### Opción A: Stockfish Local
+1. Descarga Stockfish desde: https://stockfishchess.org/download/
 2. Coloca `stockfish.exe` (Windows) o `stockfish` (Linux/Mac) en el directorio del proyecto
-3. Durante una partida local, puedes llamar desde código:
+3. Ejecuta `python main.py`
+4. Selecciona **"Jugador vs Máquina"** (opción 4)
+5. Elige **"Stockfish (Local)"**
+6. Selecciona nivel de dificultad
+7. ¡Comienza la partida! Tú juegas con blancas
 
-```python
-from reglas import sugerir_movimiento
+#### Opción B: Chess-API.com (Remoto)
+1. Ejecuta `python main.py`
+2. Selecciona **"Jugador vs Máquina"** (opción 4)
+3. Elige **"Chess-API.com (Remoto)"**
+4. ¡Comienza la partida! Tú juegas con blancas
 
-# Obtener sugerencia
-mov = sugerir_movimiento(
-    tablero.casillas, 
-    tablero.turno, 
-    motor="stockfish", 
-    nivel="medio"
-)
-```
+**Niveles de dificultad:**
+- **Fácil**: Análisis rápido (~200ms)
+- **Medio**: Análisis moderado (~500ms)
+- **Difícil**: Análisis profundo (~2000ms)
+
+**Notas importantes:**
+- En modo remoto, necesitas conexión a internet
+- El motor remoto tiene límites de uso (1000 llamadas/día gratuito)
+- Los movimientos de la IA se calculan en tiempo real
 
 ## 🎨 Recursos Opcionales
 
@@ -235,6 +239,48 @@ El juego puede funcionar sin imágenes (usará placeholders de colores), pero pa
 2. Archivo principal: `ficha.mp3` (sonido al mover pieza)
 
 Si faltan, el juego continuará sin sonido.
+
+## 🌐 APIs Externas
+
+El proyecto incluye integración con APIs externas para funcionalidades avanzadas:
+
+### Chess.com API
+
+**Funcionalidades:**
+- Obtener perfiles de jugadores
+- Ver estadísticas de juego
+- Historial de partidas recientes
+
+**Uso desde código:**
+```python
+from apis import ChessComAPI
+
+api = ChessComAPI()
+perfil = api.obtener_perfil_jugador("username")
+print(perfil)  # Estadísticas del jugador
+```
+
+**Límites:** 1000 llamadas por día (gratuito)
+
+### Chess-API.com
+
+**Funcionalidades:**
+- Análisis de posiciones FEN
+- Sugerencias de mejores movimientos
+- Evaluación de posiciones
+
+**Uso desde código:**
+```python
+from apis import ChessAPICom
+
+api = ChessAPICom()
+analisis = api.analizar_posicion("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+print(analisis)  # Análisis completo de la posición inicial
+```
+
+**Límites:** 1000 llamadas por día (gratuito)
+
+**Nota:** Las APIs requieren conexión a internet y respetan los límites de uso.
 
 ## 🕹️ Controles y Mecánicas
 
