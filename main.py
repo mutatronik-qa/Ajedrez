@@ -1,9 +1,10 @@
-"""Punto de entrada del juego de Ajedrez.
+"""
+Punto de entrada del juego de Ajedrez.
 
 Orquesta el flujo inicial:
 - Muestra el menú principal con selección de modo
-- Soporta dos modos: Ajedrez Clásico y Ajedrez Sombras
-- Inicia partidas locales, LAN o vs IA según modo
+- Soporta modos: Ajedrez Clásico local, LAN y vs IA
+- Inicia partidas según modo seleccionado
 - Controla el bucle principal de juego
 """
 import pygame
@@ -13,14 +14,12 @@ from ui import Menu, InterfazUsuario
 from lan import ServidorAjedrez, ClienteAjedrez, DescubridorServidores, PUERTO_JUEGO
 from modelos import Color
 from reglas import sugerir_movimiento
-from ajedrez_sombras import TableroSombras, IASombras
 
 def main():
     try:
         # Menú principal: seleccionar modo
         menu_principal = Menu([
             "AJEDREZ CLÁSICO",
-            "AJEDREZ SOMBRAS (RPG)",
             "Salir"
         ])
         modo = menu_principal.loop()
@@ -35,7 +34,7 @@ def main():
                 "Jugador vs Jugador",
                 "Partida LAN - Crear Servidor",
                 "Partida LAN - Unirse a Servidor",
-                "Jugador vs Máquina (Stockfish)",
+                "Jugador vs Máquina",
                 "Volver"
             ])
             opcion = menu_clasico.loop()
@@ -46,19 +45,20 @@ def main():
                 juego_lan_servidor()
             elif opcion == "Partida LAN - Unirse a Servidor":
                 juego_lan_cliente()
-            elif opcion == "Jugador vs Máquina (Stockfish)":
-                juego_vs_maquina()
+            elif opcion == "Jugador vs Máquina":
+                # Submenú para elegir motor
+                menu_motor = Menu([
+                    "Stockfish (Local)",
+                    "Chess-API.com (Remoto)",
+                    "Volver"
+                ])
+                motor_opcion = menu_motor.loop()
+                
+                if motor_opcion == "Stockfish (Local)":
+                    juego_vs_maquina(motor="stockfish")
+                elif motor_opcion == "Chess-API.com (Remoto)":
+                    juego_vs_maquina(motor="chess-api")
         
-        elif modo == "AJEDREZ SOMBRAS (RPG)":
-            menu_sombras = Menu([
-                "Jugador vs Boss IA",
-                "Volver"
-            ])
-            opcion = menu_sombras.loop()
-            
-            if opcion == "Jugador vs Boss IA":
-                juego_sombras()
-            
     except pygame.error as e:
         print(f"Error de Pygame: {e}")
     except Exception as e:
@@ -123,8 +123,8 @@ def _lan_a_coords(lan: str):
     return (sq_to_xy(a, r1), sq_to_xy(b, r2))
 
 
-def juego_vs_maquina():
-    """Ejecuta una partida contra Stockfish local (jugador blancas, IA negras)."""
+def juego_vs_maquina(motor="stockfish"):
+    """Ejecuta una partida contra IA (jugador blancas, IA negras)."""
     interfaz = InterfazUsuario()
     seleccionado = None
     clock = pygame.time.Clock()
@@ -141,7 +141,7 @@ def juego_vs_maquina():
             pygame.display.flip()
             
             # El motor se detecta automáticamente (PATH o carpeta stockfish/)
-            lan = sugerir_movimiento(interfaz.tablero.casillas, interfaz.tablero.turno, motor="stockfish", nivel="medio")
+            lan = sugerir_movimiento(interfaz.tablero.casillas, interfaz.tablero.turno, motor=motor, nivel="medio")
             coords = _lan_a_coords(lan) if lan else None
             if coords:
                 origen, destino = coords
@@ -430,119 +430,6 @@ def juego_lan_cliente():
     
     cliente.cerrar()
 
-
-def juego_sombras():
-    """Ejecuta una partida en modo Sombras (Jugador vs Boss IA)."""
-    print("\n=== INICIANDO AJEDREZ SOMBRAS ===")
-    print("Eres el AZUL (Jugador). Tu enemigo es el ROJO (Boss Enemigo).")
-    print("¡Objetivos: Explora, lucha, y derrota al Rey Caído!\n")
-    
-    # Crear tablero y IA
-    tablero = TableroSombras()
-    ia = IASombras(tablero)
-    
-    # Crear UI (simplificada para Sombras)
-    pantalla = pygame.display.set_mode((800, 600))
-    pygame.display.set_caption("Ajedrez de las Sombras")
-    clock = pygame.time.Clock()
-    fuente = pygame.font.SysFont("Arial", 16)
-    
-    turno = "JUGADOR"
-    pieza_seleccionada = None
-    
-    corriendo = True
-    while corriendo:
-        clock.tick(30)
-        
-        # Procesar eventos
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                corriendo = False
-            
-            elif evento.type == pygame.MOUSEBUTTONDOWN and turno == "JUGADOR":
-                # Click del jugador
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                
-                # Calcular posición en grid
-                from ajedrez_sombras.constantes import BOARD_OFFSET_X, BOARD_OFFSET_Y, TILE_SIZE, GRID_WIDTH, GRID_HEIGHT
-                
-                grid_x = (mouse_x - BOARD_OFFSET_X) // TILE_SIZE
-                grid_y = (mouse_y - BOARD_OFFSET_Y) // TILE_SIZE
-                
-                if 0 <= grid_x < GRID_WIDTH and 0 <= grid_y < GRID_HEIGHT:
-                    pieza_en_casilla = tablero.obtener_pieza_en(grid_x, grid_y)
-                    
-                    if pieza_seleccionada is None:
-                        # Seleccionar pieza del jugador
-                        if pieza_en_casilla and pieza_en_casilla.team == "JUGADOR":
-                            pieza_seleccionada = pieza_en_casilla
-                            print(f"Seleccionado: {pieza_en_casilla.nombre} en ({grid_x}, {grid_y})")
-                    else:
-                        # Intentar mover a destino
-                        if pieza_en_casilla == pieza_seleccionada:
-                            # Deseleccionar
-                            pieza_seleccionada = None
-                        else:
-                            # Mover si es movimiento válido
-                            movimientos_validos = pieza_seleccionada.obtener_movimientos_validos(tablero)
-                            if (grid_x, grid_y) in movimientos_validos:
-                                tablero.mover_pieza(pieza_seleccionada, grid_x, grid_y)
-                                print(f"{pieza_seleccionada.nombre} se movió a ({grid_x}, {grid_y})")
-                                pieza_seleccionada = None
-                                turno = "ENEMIGO"
-                            else:
-                                # Seleccionar otra pieza
-                                if pieza_en_casilla and pieza_en_casilla.team == "JUGADOR":
-                                    pieza_seleccionada = pieza_en_casilla
-                                    print(f"Seleccionado: {pieza_en_casilla.nombre} en ({grid_x}, {grid_y})")
-                                else:
-                                    pieza_seleccionada = None
-        
-        # Turno de la IA
-        if turno == "ENEMIGO":
-            # Invocar sombra (30% probabilidad)
-            ia.invocar_sombra()
-            
-            # Calcular movimiento
-            movimiento = ia.calcular_movimiento()
-            if movimiento:
-                pieza, x, y = movimiento
-                tablero.mover_pieza(pieza, x, y)
-                print(f"IA movió {pieza.nombre} a ({x}, {y})")
-            
-            turno = "JUGADOR"
-        
-        # Verificar condiciones de victoria/derrota
-        if tablero.boss_muerto():
-            print("\n¡¡¡ VICTORIA !!! ¡Has derrotado al Rey Caído!")
-            corriendo = False
-        elif tablero.jugador_muerto():
-            print("\n¡¡¡ DERROTA !!! El Rey Caído te ha vencido.")
-            corriendo = False
-        
-        # Dibujar
-        pantalla.fill((30, 30, 30))
-        
-        # Dibujar tablero
-        tablero.dibujar(pantalla)
-        
-        # Dibujar información
-        info_turno = f"Turno: {turno}"
-        info_text = fuente.render(info_turno, True, (255, 255, 255))
-        pantalla.blit(info_text, (10, 10))
-        
-        # Dibujar HP de piezas (simplificado)
-        for pieza in tablero.piezas:
-            if pieza.hp < pieza.hp_max:
-                # Mostrar HP encima de pieza dañada
-                hp_text = fuente.render(f"HP:{pieza.hp}/{pieza.hp_max}", True, (255, 100, 100))
-                x_screen = BOARD_OFFSET_X + pieza.grid_x * TILE_SIZE + 5
-                y_screen = BOARD_OFFSET_Y + pieza.grid_y * TILE_SIZE - 20
-                pantalla.blit(hp_text, (x_screen, y_screen))
-        
-        pygame.display.flip()
-    
-    print("\nFin de la partida.\n")
 
 if __name__ == "__main__":
     main()

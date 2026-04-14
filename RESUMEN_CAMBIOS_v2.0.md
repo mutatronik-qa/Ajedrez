@@ -174,12 +174,12 @@ DESPUÉS: Profesional con tablas
 
 # 3. Module Exports
 ✅ ajedrez_clasico/ exporta (Tablero, Pieza)
-✅ ajedrez_sombras/ exporta (TableroSombras, IASombras)
+❌ ajedrez_sombras/ eliminado (proyecto simplificado)
 
 # 4. Runtime Execution
 ✅ main.py se inicia sin errores
 ✅ Menú jerárquico funciona
-✅ Ambos modos (Clásico y Sombras) accesibles
+✅ Modo Clásico accesible (Sombras eliminado)
 
 # 5. Integration Tests
 ✅ Navegación: ↑↓←→ ENTER ESC

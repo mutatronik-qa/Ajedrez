@@ -17,7 +17,7 @@ Ayuda a los contribuidores a trabajar rápidamente con el proyecto de ajedrez en
 - `tablero.py` - estado de la partida, control de turno y ejecución de movimientos.
 - `reglas.py` - validación con `python-chess`, FEN y sugerencias de motores UCI.
 - `lan.py` - comunicación TCP para partidas LAN servidor/cliente.
-- `ajedrez_clasico/` y `ajedrez_sombras/` - modos alternativos de juego.
+- `ajedrez_clasico/` - modo de juego clásico.
 
 ## Comandos comunes
 - Instalar dependencias:
@@ -43,7 +43,6 @@ Ayuda a los contribuidores a trabajar rápidamente con el proyecto de ajedrez en
 ## Orientación para características específicas
 - LAN: el servidor usa blancas y el cliente usa negras en TCP puerto `8080`.
 - IA: la función `reglas.sugerir_movimiento` ya abstrae el motor UCI. Usa esta función al integrar `stockfish` o `lc0`.
-- Modo Sombras: revisa `ajedrez_sombras/` antes de tocar el modo clásico.
 
 ## Qué evitar
 - No agregues dependencias nuevas sin un motivo claro.

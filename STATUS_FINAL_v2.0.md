@@ -93,7 +93,6 @@ Estado: ✅ Funcional
 # 2. Imports
 ✅ from ui import Menu
 ✅ from ajedrez_clasico import Tablero, Pieza
-✅ from ajedrez_sombras import TableroSombras, IASombras
 ✅ from modelos import Color, TipoPieza
 ✅ from reglas import sugerir_movimiento
 
@@ -126,14 +125,6 @@ Ajedrez/
 │       ├── __init__.py (exporta Tablero, Pieza)
 │       ├── tablero.py (lógica de juego)
 │       └── pieza.py (6 tipos de piezas)
-│
-├── [MÓDULO SOMBRAS]
-│   └── ajedrez_sombras/
-│       ├── __init__.py (exporta clases principales)
-│       ├── constantes.py (stats y colores)
-│       ├── pieza_sombras.py (7 tipos con HP/Daño)
-│       ├── tablero_sombras.py (niebla de guerra)
-│       └── ia_sombras.py (Boss IA)
 │
 ├── [UTILIDADES]
 │   ├── modelos.py (enums)

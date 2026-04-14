@@ -5,7 +5,7 @@
 ### ✅ COMPLETADO
 
 #### Core Ajedrez Clásico
-- ✅ Estructura modular completa (ajedrez_clasico/, ajedrez_sombras/)
+- ✅ Estructura modular completa (ajedrez_clasico/)
 - ✅ 6 tipos de piezas con movimientos válidos
 - ✅ Tablero 8x8, sistema de turnos, jaque/jaque mate
 - ✅ Validación de reglas con python-chess
@@ -44,12 +44,12 @@
 - ✅ Menú jerárquico integrado
 
 #### Documentación y Código
-- ✅ Comentarios extensos en ajedrez_sombras/
+- ✅ Comentarios extensos en ajedrez_clasico/
 - ✅ Docstrings detallados en todas las clases
 - ✅ requirements.txt actualizado (pygame-ce 2.5.6)
 - ✅ README.md v2.0 con tablas de estado
 - ✅ Guía Técnica v2.0 (arquitectura completa)
-- ✅ Fix: Error 'es_boss' en PiezaSombraTorre
+- ✅ Proyecto simplificado: modo Sombras eliminado
 
 #### Validación
 - ✅ py_compile: Sintaxis OK
@@ -289,13 +289,14 @@ v2.0 (Actual)
 
 ## 🎉 Logros Alcanzados en v2.0
 
-- ✅ Arquitectura modular limpia (ajedrez_clasico/ + ajedrez_sombras/)
-- ✅ 5 modos jugables (4 clásico + 1 Sombras)
+- ✅ Arquitectura modular limpia (ajedrez_clasico/)
+- ✅ 4 modos jugables (todos clásico)
 - ✅ Menú jerárquico intuitivo
 - ✅ LAN multiplayer funcional
 - ✅ Documentación profesional
 - ✅ Código comentado y mantenible
 - ✅ Import chain verificado y optimizado
 - ✅ Cero errores de ejecución
+- ✅ Proyecto simplificado: modo Sombras eliminado
 
 **Estado Final: PRODUCCIÓN LISTA** ✅

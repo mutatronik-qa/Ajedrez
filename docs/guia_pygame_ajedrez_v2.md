@@ -26,13 +26,6 @@ Ajedrez/
 │       ├── tablero.py             # Lógica de juego (turnos, jaque/mate)
 │       └── pieza.py               # 6 tipos de piezas + movimientos
 │
-├── [MÓDULO SOMBRAS - RPG]
-│   └── ajedrez_sombras/
-│       ├── __init__.py            # Exporta TableroSombras, IASombras
-│       ├── constantes.py          # Stats RPG, colores, configuración
-│       ├── pieza_sombras.py       # 7 tipos (Peón...Rey, Boss)
-│       ├── tablero_sombras.py     # Tablero + niebla de guerra
-│       └── ia_sombras.py          # Boss IA + táctica de invocación
 │
 ├── [UTILIDADES COMPARTIDAS]
 │   ├── modelos.py                 # Enums: Color, TipoPieza, EstadoJuego
@@ -453,14 +446,6 @@ main.py
 │   └── [python-chess]
 ├── lan.py
 │   └── modelos.py
-└── ajedrez_sombras/
-    ├── tablero_sombras.py
-    │   ├── constantes.py
-    │   ├── pieza_sombras.py
-    │   └── ia_sombras.py
-    ├── ia_sombras.py
-    │   └── pieza_sombras.py
-    └── constantes.py
 ```
 
 ### Librerías Externas
@@ -523,7 +508,6 @@ main.py
 .\.venv\Scripts\python.exe -c "
 from ui import Menu
 from ajedrez_clasico import Tablero
-from ajedrez_sombras import TableroSombras, IASombras
 print('✓ Todos los imports funcionan')
 "
 

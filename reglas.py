@@ -19,6 +19,7 @@ except Exception:
 
 from modelos import Color, TipoPieza
 from ajedrez_clasico import Pieza
+from apis import chess_api
 
 def tablero_a_fen(casillas: Dict[Tuple[int, int], Optional[Pieza]], turno: Color) -> str:
     """Convierte el diccionario de casillas a FEN estándar.
@@ -207,24 +208,51 @@ def sugerir_movimiento(
     nivel: str = "medio",
     ruta_motor: Optional[str] = None
 ) -> Optional[str]:
-    """Devuelve la mejor jugada LAN usando un motor UCI local.
+    """Devuelve la mejor jugada LAN usando motor local o API externa.
 
-    - Si no se pasa `ruta_motor`, intenta resolver el binario automáticamente.
+    Motores soportados:
+    - "stockfish": Motor UCI local
+    - "chess-api": Chess-API.com (remoto)
+    - "chess-com": Chess.com (no implementado aún)
     """
-    niveles = {"facil": 200, "medio": 500, "dificil": 2000}
-    tiempo_ms = niveles.get(nivel, 500)
+    if motor == "chess-api":
+        return _sugerir_movimiento_api(casillas, turno, nivel)
+    else:
+        # Motor local
+        niveles = {"facil": 200, "medio": 500, "dificil": 2000}
+        tiempo_ms = niveles.get(nivel, 500)
 
-    if ruta_motor is None:
-        ruta_motor = _ruta_motor_por_defecto(motor)
-    if not ruta_motor:
-        print("No se encontró el binario del motor UCI.")
-        return None
+        if ruta_motor is None:
+            ruta_motor = _ruta_motor_por_defecto(motor)
+        if not ruta_motor:
+            print("No se encontró el binario del motor UCI.")
+            return None
+
+        fen = tablero_a_fen(casillas, turno)
+        m = MotorUCI(ruta_motor, tiempo_ms=tiempo_ms)
+        if not m.disponible():
+            print("El motor UCI no está disponible. Verifica la ruta y permisos del binario.")
+            return None
+        jugada = m.mejor_jugada(fen)
+        m.cerrar()
+        return jugada
+
+
+def _sugerir_movimiento_api(
+    casillas: Dict[Tuple[int, int], Optional[Pieza]],
+    turno: Color,
+    nivel: str = "medio"
+) -> Optional[str]:
+    """Obtiene sugerencia de movimiento usando Chess-API.com."""
+    niveles_depth = {"facil": 8, "medio": 12, "dificil": 16}
+    depth = niveles_depth.get(nivel, 12)
 
     fen = tablero_a_fen(casillas, turno)
-    m = MotorUCI(ruta_motor, tiempo_ms=tiempo_ms)
-    if not m.disponible():
-        print("El motor UCI no está disponible. Verifica la ruta y permisos del binario.")
+    resultado = chess_api.analizar_posicion(fen, depth=depth, variants=1)
+
+    if resultado and 'move' in resultado:
+        # Chess-API.com devuelve movimiento en formato UCI (e2e4)
+        return resultado['move']
+    else:
+        print("No se pudo obtener movimiento de Chess-API.com")
         return None
-    jugada = m.mejor_jugada(fen)
-    m.cerrar()
-    return jugada
